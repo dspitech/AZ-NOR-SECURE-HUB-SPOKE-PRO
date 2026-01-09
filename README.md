@@ -229,26 +229,20 @@ Avant de déployer cette infrastructure, assurez-vous d'avoir :
 
 ### Option 1 : Déploiement via Azure CLI
 
-```bash
-# Connexion à Azure
-az login
-
+```
 # Définition des variables
-RESOURCE_GROUP="rg-hub-spoke-norway"
-LOCATION="norwayeast"
-ADMIN_PASSWORD="VotreMotDePasseSecurise123!"
+$RG_NAME = "RG-ARCHITECTURE-COMPLET-NORWAY"
+$LOCATION = "norwayeast"
 
-# Création du groupe de ressources
-az group create \
-  --name $RESOURCE_GROUP \
-  --location $LOCATION
+# 1. Créer le groupe de ressources
+az group create --name $RG_NAME --location $LOCATION
 
-# Déploiement du template Bicep
-az deployment group create \
-  --resource-group $RESOURCE_GROUP \
-  --template-file main.bicep \
-  --parameters location=$LOCATION \
-               adminPassword=$ADMIN_PASSWORD
+# 2. Lancer le déploiement (compter 15 minutes)
+az deployment group create `
+  --resource-group $RG_NAME `
+  --template-file main.bicep `
+  --parameters adminPassword='VotreMotDePasseComplex2026!' `
+  --verbose
 ```
 
 ### Option 2 : Déploiement via Azure Portal
@@ -261,11 +255,6 @@ az deployment group create \
 6. Remplissez les paramètres requis
 7. Cliquez sur "Vérifier + créer" puis "Créer"
 
-### Option 3 : Déploiement via GitHub Actions / Azure DevOps
-
-Consultez les exemples de pipelines CI/CD dans le dossier `.github/workflows` ou `azure-pipelines/`.
-
----
 
 ## 🔒 Sécurité
 
@@ -680,15 +669,11 @@ Pour toute question ou problème :
 
 ## 📄 Licence
 
-Ce projet est fourni tel quel, sans garantie. Utilisez-le à vos propres risques.
+Cette infrastructure Hub-and-Spoke automatisée sous Azure (via Bicep) est entièrement libre et open source. Le code source complet, incluant la segmentation réseau avancée, le filtrage par Azure Firewall et le monitoring centralisé, est mis à la disposition de tous gratuitement.
 
 ---
 
-<div align="center">
 
-**Développé avec ❤️ pour Azure**
-
-*Version 1.1 - Monitoring & IP Segmentation Active*
 
 [⬆ Retour en haut](#-az-nor-secure-hub-spoke)
 
