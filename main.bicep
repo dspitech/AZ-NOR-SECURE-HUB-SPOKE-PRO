@@ -3,12 +3,9 @@
 PROJET : AZ-NOR-SECURE-HUB-SPOKE
 ARCHITECTURE : Hub-and-Spoke avec Inspection de Flux Centralisée
 REGION : Norway East
-VERSION : 1.1 (Monitoring & IP Segmentation Active)
+VERSION : 1.2 (Correctif : Autorisation des flux APT Ubuntu)
 --------------------------------------------------------------------------------
-SEGMENTATION RÉSEAU :
-- HUB (Management/Shared) : 10.0.0.0/16
-- SPOKE PROD (Production) : 192.168.0.0/16
-- SPOKE NON-PROD (Dev/Test) : 172.16.0.0/12
+LICENCE : MIT (Projet libre et gratuit - Open Source)
 ================================================================================
 */
 
@@ -28,7 +25,6 @@ var fwPrivateIp = '10.0.1.4'
 // ==========================================
 // 1. MONITORING : LOG ANALYTICS WORKSPACE
 // ==========================================
-// Workspace centralisé pour la rétention et l'analyse des logs de sécurité
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: 'law-hub-norway'
   location: location
@@ -41,7 +37,6 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 // ==========================================
 // 2. ROUTAGE : USER DEFINED ROUTES (UDR)
 // ==========================================
-// Force tout le trafic des Spokes à passer par l'IP privée du Firewall (Inspection)
 resource routeTableSpoke 'Microsoft.Network/routeTables@2023-05-01' = {
   name: 'rt-forced-to-firewall'
   location: location
@@ -62,8 +57,6 @@ resource routeTableSpoke 'Microsoft.Network/routeTables@2023-05-01' = {
 // ==========================================
 // 3. INFRASTRUCTURE RÉSEAU (VNETS)
 // ==========================================
-
-// HUB VNET : Héberge le Firewall et le Bastion
 resource hubVnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
   name: 'vnet-hub-core'
   location: location
@@ -76,7 +69,6 @@ resource hubVnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
   }
 }
 
-// SPOKE PROD : Réseau 192.168.x.x (Isolé)
 resource prodVnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
   name: 'vnet-spoke-prod'
   location: location
@@ -92,7 +84,6 @@ resource prodVnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
   }
 }
 
-// SPOKE NON-PROD : Réseau 172.16.x.x (Isolé)
 resource nonProdVnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
   name: 'vnet-spoke-nonprod'
   location: location
@@ -111,11 +102,8 @@ resource nonProdVnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
 // ==========================================
 // 4. INTERCONNEXIONS (VNET PEERINGS)
 // ==========================================
-// Hub <-> Prod
 resource h2p 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2023-05-01' = { parent: hubVnet, name: 'hub-to-prod', properties: { remoteVirtualNetwork: { id: prodVnet.id }, allowVirtualNetworkAccess: true, allowForwardedTraffic: true } }
 resource p2h 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2023-05-01' = { parent: prodVnet, name: 'prod-to-hub', properties: { remoteVirtualNetwork: { id: hubVnet.id }, allowVirtualNetworkAccess: true, allowForwardedTraffic: true } }
-
-// Hub <-> Non-Prod
 resource h2np 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2023-05-01' = { parent: hubVnet, name: 'hub-to-nonprod', properties: { remoteVirtualNetwork: { id: nonProdVnet.id }, allowVirtualNetworkAccess: true, allowForwardedTraffic: true } }
 resource np2h 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2023-05-01' = { parent: nonProdVnet, name: 'nonprod-to-hub', properties: { remoteVirtualNetwork: { id: hubVnet.id }, allowVirtualNetworkAccess: true, allowForwardedTraffic: true } }
 
@@ -128,14 +116,14 @@ resource fwPolicy 'Microsoft.Network/firewallPolicies@2023-05-01' = {
   properties: { sku: { tier: 'Standard' } }
 }
 
-// Règles autorisant le trafic inter-spoke (Ping/SSH)
 resource fwRules 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2023-05-01' = {
   parent: fwPolicy
-  name: 'TrafficRuleCollection'
+  name: 'GlobalTrafficCollection'
   properties: {
     priority: 1000
     ruleCollections: [
       {
+        // RÈGLES RÉSEAU (INTER-SPOKE)
         ruleCollectionType: 'FirewallPolicyFilterRuleCollection'
         name: 'Allow-Internal-Traffic'
         priority: 1100
@@ -151,11 +139,34 @@ resource fwRules 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2023-0
           }
         ]
       }
+      {
+        // RÈGLES APPLICATIVES (ACCÈS INTERNET / APT)
+        ruleCollectionType: 'FirewallPolicyFilterRuleCollection'
+        name: 'Allow-Ubuntu-Update-Flux'
+        priority: 1200
+        action: { type: 'Allow' }
+        rules: [
+          {
+            ruleType: 'ApplicationRule'
+            name: 'Ubuntu-Repo-Access'
+            protocols: [
+              { protocolType: 'Http', port: 80 }
+              { protocolType: 'Https', port: 443 }
+            ]
+            targetFqdns: [
+              'azure.archive.ubuntu.com'
+              'security.ubuntu.com'
+              'changelogs.ubuntu.com'
+              'archive.ubuntu.com'
+            ]
+            sourceAddresses: ['192.168.0.0/16', '172.16.0.0/12']
+          }
+        ]
+      }
     ]
   }
 }
 
-// Instance Firewall
 resource firewall 'Microsoft.Network/azureFirewalls@2023-05-01' = {
   name: 'fw-hub-central'
   location: location
@@ -179,7 +190,6 @@ resource fwIp 'Microsoft.Network/publicIPAddresses@2023-05-01' = {
   properties: { publicIPAllocationMethod: 'Static' }
 }
 
-// --- ACTIVATION DU MONITORING DES FLUX ---
 resource fwDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'diag-fw-to-loganalytics'
   scope: firewall
@@ -220,8 +230,6 @@ resource bastionIp 'Microsoft.Network/publicIPAddresses@2023-05-01' = {
 // ==========================================
 // 7. COMPUTE : VIRTUAL MACHINES
 // ==========================================
-
-// VM PRODUCTION
 resource nicProd 'Microsoft.Network/networkInterfaces@2023-05-01' = {
   name: 'nic-vm-prod-01'
   location: location
@@ -250,7 +258,6 @@ resource vmProd 'Microsoft.Compute/virtualMachines@2023-07-01' = {
   }
 }
 
-// VM NON-PROD
 resource nicNonProd 'Microsoft.Network/networkInterfaces@2023-05-01' = {
   name: 'nic-vm-nonprod-01'
   location: location
