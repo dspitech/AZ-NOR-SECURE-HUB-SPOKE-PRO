@@ -411,13 +411,13 @@ var fwPrivateIp = '10.0.1.4'
 
 **Solutions** :
 1. Vérifiez que les peering sont bien établis (bidirectionnels)
-   ```bash
-   az network vnet peering list --resource-group rg-hub-spoke-norway --vnet-name vnet-hub-core
+   ```
+   az network vnet peering list --resource-group RG-ARCHITECTURE-COMPLET-NORWAY --vnet-name vnet-hub-core
    ```
 
 2. Vérifiez que les UDR sont bien associées aux subnets
-   ```bash
-   az network route-table show --resource-group rg-hub-spoke-norway --name rt-forced-to-firewall
+   ```
+   az network route-table show --resource-group RG-ARCHITECTURE-COMPLET-NORWAY --name rt-forced-to-firewall
    ```
 
 3. Vérifiez les règles du Firewall dans le portail Azure
@@ -461,22 +461,51 @@ var fwPrivateIp = '10.0.1.4'
 
 ### Commandes de diagnostic utiles
 
-```bash
-# Vérifier l'état de santé du Firewall
-az network firewall show \
-  --resource-group rg-hub-spoke-norway \
+##### 1. Vérifier l'état de santé du Firewall
+```
+az network firewall show `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
   --name fw-hub-central
+```
 
-# Vérifier les routes effectives d'une VM
-az network nic show-effective-route-table \
-  --resource-group rg-hub-spoke-norway \
-  --name nic-vm-prod-01
+##### 2. Vérifier les routes effectives de la VM Prod
 
-# Tester la connectivité réseau
-az network watcher test-connectivity \
-  --resource-group rg-hub-spoke-norway \
-  --source-resource vm-prod-01 \
-  --dest-resource vm-nonprod-01 \
+```
+# (Cela permet de confirmer que le trafic passe bien par 10.0.1.4)
+az network nic show-effective-route-table `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --name nic-vm-prod-01 `
+  --output table
+```
+
+##### 3. Tester la connectivité entre Prod et Non-Prod (Port SSH)
+
+Avant de tester la connectivité il faut : **installer l'extension sur vos deux VMs**
+
+```
+# Installation sur la VM Prod
+az vm extension set `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --vm-name vm-prod-01 `
+  --name NetworkWatcherAgentLinux `
+  --publisher Microsoft.Azure.NetworkWatcher `
+  --version 1.4
+
+# Installation sur la VM Non-Prod
+az vm extension set `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --vm-name vm-nonprod-01 `
+  --name NetworkWatcherAgentLinux `
+  --publisher Microsoft.Azure.NetworkWatcher `
+  --version 1.4
+```
+
+##### Tester la connectivité
+```
+az network watcher test-connectivity `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --source-resource vm-prod-01 `
+  --dest-resource vm-nonprod-01 `
   --dest-port 22
 ```
 
@@ -597,20 +626,28 @@ R : Azure Firewall Standard supporte l'inspection SSL/TLS avec des certificats. 
 
 ### Commandes utiles
 
-```bash
-# Vérifier l'état du déploiement
-az deployment group show \
-  --resource-group rg-hub-spoke-norway \
-  --name deployment-name
 
-# Lister les ressources déployées
-az resource list \
-  --resource-group rg-hub-spoke-norway \
+#### 1. Vérifier l'état du déploiement
+Note : Par défaut, le nom du déploiement est souvent le nom du fichier 'main'
+
+```
+az deployment group show `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --name main
+```
+#### 2. Lister toutes les ressources du projet
+
+```
+az resource list `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
   --output table
+```
+#### 3. Supprimer tout le projet (Hub, Spokes, Firewall, VMs)
+# Attention : Cette commande est irréversible.
 
-# Supprimer toutes les ressources
-az group delete \
-  --name rg-hub-spoke-norway \
+```
+az group delete `
+  --name RG-ARCHITECTURE-COMPLET-NORWAY `
   --yes --no-wait
 ```
 
