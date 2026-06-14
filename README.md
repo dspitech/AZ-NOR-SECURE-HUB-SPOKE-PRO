@@ -427,7 +427,7 @@ provider "azurerm" {
 `delete_os_disk_on_deletion = true` : Quand Terraform supprime une VM, le disque OS est aussi supprime automatiquement. Sans cette option, les disques orphelins continueraient a generer des frais.
 
 **Bootstrap du backend distant** (a executer une seule fois avant `terraform init`) :
-```bash
+```powershell
 az group create --name rg-terraform-state-norway --location norwayeast
 
 az storage account create --name sttfstatenorway001 `
@@ -1353,7 +1353,7 @@ Le deploiement suit trois etapes dans cet ordre immuable :
 
 ### Deploiement rapide
 
-```bash
+```powershell
 # Cloner le projet
 git clone https://github.com/dspitech/AZ-NOR-SECURE-HUB-SPOKE-PRO.git
 cd AZ-NOR-SECURE-HUB-SPOKE-PRO
@@ -1370,7 +1370,7 @@ make apply
 
 ### Deploiement detaille
 
-```bash
+```powershell
 # Etape 1 : Authentification Azure
 az login
 az account set --subscription "<NOM_OU_ID_ABONNEMENT>"
@@ -1438,7 +1438,7 @@ Ce resultat confirme que les deux premiers niveaux de securite (UDR et Firewall)
 
 ### Destruction
 
-```bash
+```powershell
 make destroy
 ```
 
@@ -1465,14 +1465,14 @@ git push / pull_request
 
 **Etape 1 : Recuperer le Subscription ID**
 
-```bash
+```powershell
 $SUBSCRIPTION_ID = az account show --query id -o tsv
 Write-Host "Subscription ID : $SUBSCRIPTION_ID"
 ```
 
 **Etape 2 : Creer le Service Principal**
 
-```bash
+```powershell
 az ad sp create-for-rbac `
   --name "sp-terraform-hub-spoke" `
   --role Contributor `
@@ -1511,7 +1511,7 @@ Puis activer : Environment protection rules > Required reviewers > Ajouter votre
 
 **Etape 5 : Declencher le pipeline**
 
-```bash
+```powershell
 git add .
 git commit -m "ci: configuration GitHub Actions"
 git push origin main
@@ -1603,7 +1603,7 @@ Total estime : 1 405 a 1 500 USD par mois hors trafic sortant.
 
 Le credit s epuise en 2 a 3 jours avec le Firewall Standard allume en permanence. Commandes d economie :
 
-```bash
+```powershell
 make vm-stop          # Arret des VMs (economie ~0.50 USD/jour)
 make vm-start         # Demarrage des VMs
 make costs            # Resume des ressources facturables
@@ -1618,7 +1618,7 @@ Option Firewall Basic pour reduire les couts d environ 950 USD/mois : modifier `
 
 ### Commandes Make disponibles
 
-```bash
+```powershell
 make help            # Liste toutes les commandes disponibles
 make init            # terraform init
 make validate        # terraform validate
@@ -1641,7 +1641,7 @@ Ne jamais committer dans Git : `terraform.tfvars`, `terraform.tfstate`, `terrafo
 Utiliser un backend distant des que le travail se fait en equipe. L etat local ne peut pas etre partage sans risque de corruption.
 
 Utiliser des variables d environnement pour les secrets en CI/CD :
-```bash
+```powershell
 export TF_VAR_admin_password="MonMotDePasse2026!"
 ```
 
@@ -1657,7 +1657,7 @@ Code="RequestDisallowedByPolicy"
 ```
 
 Solution : Commenter le bloc backend dans `backend.tf`, puis relancer `terraform init`. Ou reinitialiser completement :
-```bash
+```powershell
 rm -rf .terraform*
 terraform init
 ```
@@ -1678,7 +1678,7 @@ Code="InvalidAuthenticationToken"
 ```
 
 Solution : Le token Azure a expire. Se reconnecter :
-```bash
+```powershell
 az login
 az account set --subscription "<ID>"
 make plan
@@ -1701,7 +1701,7 @@ LastUpdated = "2026-06-14"
 
 ### Les VMs ne communiquent pas
 
-```bash
+```powershell
 # Verifier les peerings
 az network vnet peering list `
   --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
