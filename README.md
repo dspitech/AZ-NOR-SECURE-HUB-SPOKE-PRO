@@ -384,6 +384,10 @@ resource "azurerm_monitor_diagnostic_setting" "firewall" {
   enabled_log { category = "AzureFirewallNetworkRule" }
   enabled_log { category = "AzureFirewallApplicationRule" }
   metric { category = "AllMetrics" }
+
+  lifecycle {
+    create_before_destroy = true   # évite le 409 si Terraform recrée le setting
+  }
 }
 
 resource "azurerm_public_ip" "bastion" {
@@ -410,11 +414,11 @@ resource "azurerm_bastion_host" "main" {
 }
 
 resource "azurerm_route_table" "forced_firewall" {
-  name                          = local.route_table_name
-  resource_group_name           = azurerm_resource_group.main.name
-  location                      = azurerm_resource_group.main.location
-  disable_bgp_route_propagation = true
-  tags                          = var.tags
+  name                       = local.route_table_name
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = azurerm_resource_group.main.location
+  bgp_route_propagation_enabled = false   # remplace disable_bgp_route_propagation
+  tags                       = var.tags
 
   route {
     name                   = "route-to-firewall"
