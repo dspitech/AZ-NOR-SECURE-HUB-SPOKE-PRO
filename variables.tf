@@ -23,14 +23,45 @@ variable "tags" {
   }
 }
 
-variable "hub_address_space"     { type = string; default = "10.0.0.0/16" }
-variable "hub_firewall_subnet"   { type = string; default = "10.0.1.0/24" }
-variable "hub_bastion_subnet"    { type = string; default = "10.0.2.0/24" }
-variable "prod_address_space"    { type = string; default = "192.168.0.0/16" }
-variable "prod_subnet"           { type = string; default = "192.168.1.0/24" }
-variable "nonprod_address_space" { type = string; default = "172.16.0.0/12" }
-variable "nonprod_subnet"        { type = string; default = "172.16.1.0/24" }
-variable "firewall_private_ip"   { type = string; default = "10.0.1.4" }
+variable "hub_address_space" {
+  type    = string
+  default = "10.0.0.0/16"
+}
+
+variable "hub_firewall_subnet" {
+  type    = string
+  default = "10.0.1.0/24"
+}
+
+variable "hub_bastion_subnet" {
+  type    = string
+  default = "10.0.2.0/24"
+}
+
+variable "prod_address_space" {
+  type    = string
+  default = "192.168.0.0/16"
+}
+
+variable "prod_subnet" {
+  type    = string
+  default = "192.168.1.0/24"
+}
+
+variable "nonprod_address_space" {
+  type    = string
+  default = "172.16.0.0/12"
+}
+
+variable "nonprod_subnet" {
+  type    = string
+  default = "172.16.1.0/24"
+}
+
+variable "firewall_private_ip" {
+  type    = string
+  default = "10.0.1.4"
+}
 
 variable "vm_size" {
   type    = string
