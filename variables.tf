@@ -1,98 +1,79 @@
 ###############################################################################
-# AZ-NOR-SECURE-HUB-SPOKE — variables.tf
+# AZ-NOR-SECURE-HUB-SPOKE - variables.tf
 ###############################################################################
 
-# ─── Général ──────────────────────────────────────────────────────────────────
-
 variable "resource_group_name" {
-  description = "Nom du groupe de ressources Azure"
-  type        = string
-  default     = "RG-ARCHITECTURE-COMPLET-NORWAY"
+  type    = string
+  default = "RG-ARCHITECTURE-COMPLET-NORWAY"
 }
 
 variable "location" {
-  description = "Région Azure de déploiement"
-  type        = string
-  default     = "norwayeast"
+  type    = string
+  default = "norwayeast"
 }
 
 variable "tags" {
-  description = "Tags appliqués à toutes les ressources"
-  type        = map(string)
+  type = map(string)
   default = {
     Project     = "AZ-NOR-SECURE-HUB-SPOKE"
     Environment = "HubSpoke"
     ManagedBy   = "Terraform"
     Region      = "NorwayEast"
+    Version     = "2.1"
   }
 }
 
-# ─── Réseau — Espaces d'adressage ─────────────────────────────────────────────
-
-variable "hub_address_space" {
-  description = "Espace d'adressage du Hub VNet"
-  type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "hub_firewall_subnet" {
-  description = "Subnet pour Azure Firewall (doit s'appeler AzureFirewallSubnet)"
-  type        = string
-  default     = "10.0.1.0/24"
-}
-
-variable "hub_bastion_subnet" {
-  description = "Subnet pour Azure Bastion (doit s'appeler AzureBastionSubnet)"
-  type        = string
-  default     = "10.0.2.0/24"
-}
-
-variable "prod_address_space" {
-  description = "Espace d'adressage du Spoke Production"
-  type        = string
-  default     = "192.168.0.0/16"
-}
-
-variable "prod_subnet" {
-  description = "Subnet des ressources de production"
-  type        = string
-  default     = "192.168.1.0/24"
-}
-
-variable "nonprod_address_space" {
-  description = "Espace d'adressage du Spoke Non-Production"
-  type        = string
-  default     = "172.16.0.0/12"
-}
-
-variable "nonprod_subnet" {
-  description = "Subnet des ressources non-production"
-  type        = string
-  default     = "172.16.1.0/24"
-}
-
-variable "firewall_private_ip" {
-  description = "Adresse IP privée statique du Azure Firewall (dans AzureFirewallSubnet)"
-  type        = string
-  default     = "10.0.1.4"
-}
-
-# ─── Machines Virtuelles ──────────────────────────────────────────────────────
+variable "hub_address_space"     { type = string; default = "10.0.0.0/16" }
+variable "hub_firewall_subnet"   { type = string; default = "10.0.1.0/24" }
+variable "hub_bastion_subnet"    { type = string; default = "10.0.2.0/24" }
+variable "prod_address_space"    { type = string; default = "192.168.0.0/16" }
+variable "prod_subnet"           { type = string; default = "192.168.1.0/24" }
+variable "nonprod_address_space" { type = string; default = "172.16.0.0/12" }
+variable "nonprod_subnet"        { type = string; default = "172.16.1.0/24" }
+variable "firewall_private_ip"   { type = string; default = "10.0.1.4" }
 
 variable "vm_size" {
-  description = "Taille des machines virtuelles"
-  type        = string
-  default     = "Standard_B1s"
+  type    = string
+  default = "Standard_B1s"
+  validation {
+    condition     = contains(["Standard_B1s", "Standard_B1ms", "Standard_B2s", "Standard_D2s_v3"], var.vm_size)
+    error_message = "Taille de VM non autorisée."
+  }
 }
 
 variable "admin_username" {
-  description = "Nom d'utilisateur administrateur des VMs"
-  type        = string
-  default     = "azureadmin"
+  type    = string
+  default = "azureadmin"
 }
 
 variable "admin_password" {
-  description = "Mot de passe administrateur des VMs (sensible)"
-  type        = string
-  sensitive   = true
+  type      = string
+  sensitive = true
+  validation {
+    condition     = length(var.admin_password) >= 12
+    error_message = "Le mot de passe doit avoir au moins 12 caractères."
+  }
+}
+
+variable "alert_email" {
+  type    = string
+  default = "admin@example.com"
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.alert_email))
+    error_message = "Email invalide."
+  }
+}
+
+variable "fw_denial_threshold" {
+  type    = number
+  default = 100
+}
+
+variable "log_retention_days" {
+  type    = number
+  default = 30
+  validation {
+    condition     = contains([30, 60, 90, 120, 180, 365], var.log_retention_days)
+    error_message = "Rétention doit être : 30, 60, 90, 120, 180 ou 365 jours."
+  }
 }

@@ -1,24 +1,6 @@
 ###############################################################################
-# AZ-NOR-SECURE-HUB-SPOKE — main.tf
-# Ressources principales : Firewall, Bastion, VMs, Log Analytics, UDR
+# AZ-NOR-SECURE-HUB-SPOKE - main.tf
 ###############################################################################
-
-terraform {
-  required_version = ">= 1.5.0"
-
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.100"
-    }
-  }
-}
-
-provider "azurerm" {
-  features {}
-}
-
-# ─── Resource Group ───────────────────────────────────────────────────────────
 
 resource "azurerm_resource_group" "main" {
   name     = var.resource_group_name
@@ -26,21 +8,17 @@ resource "azurerm_resource_group" "main" {
   tags     = var.tags
 }
 
-# ─── Log Analytics Workspace ──────────────────────────────────────────────────
-
 resource "azurerm_log_analytics_workspace" "main" {
-  name                = "law-hub-norway"
+  name                = local.law_name
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   sku                 = "PerGB2018"
-  retention_in_days   = 30
+  retention_in_days   = var.log_retention_days
   tags                = var.tags
 }
 
-# ─── Azure Firewall Policy ────────────────────────────────────────────────────
-
 resource "azurerm_firewall_policy" "main" {
-  name                = "fw-policy-global"
+  name                = local.firewall_policy_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   sku                 = "Standard"
@@ -67,10 +45,8 @@ resource "azurerm_firewall_policy_rule_collection_group" "main" {
   }
 }
 
-# ─── Public IP — Azure Firewall ───────────────────────────────────────────────
-
 resource "azurerm_public_ip" "firewall" {
-  name                = "pip-fw-hub-central"
+  name                = local.pip_firewall_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   allocation_method   = "Static"
@@ -78,10 +54,8 @@ resource "azurerm_public_ip" "firewall" {
   tags                = var.tags
 }
 
-# ─── Azure Firewall ───────────────────────────────────────────────────────────
-
 resource "azurerm_firewall" "main" {
-  name                = "fw-hub-central"
+  name                = local.firewall_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   sku_name            = "AZFW_VNet"
@@ -96,30 +70,24 @@ resource "azurerm_firewall" "main" {
   }
 }
 
-# ─── Diagnostic Settings — Azure Firewall → Log Analytics ─────────────────────
-
+# FIX 2 : lifecycle create_before_destroy pour éviter le 409 Conflict
+# Le Makefile supprime automatiquement le setting orphelin avant apply
 resource "azurerm_monitor_diagnostic_setting" "firewall" {
-  name                       = "diag-fw-hub-central"
+  name                       = "diag-fw-${local.prefix}"
   target_resource_id         = azurerm_firewall.main.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
 
-  enabled_log {
-    category = "AzureFirewallNetworkRule"
-  }
+  enabled_log { category = "AzureFirewallNetworkRule" }
+  enabled_log { category = "AzureFirewallApplicationRule" }
+  metric { category = "AllMetrics" }
 
-  enabled_log {
-    category = "AzureFirewallApplicationRule"
-  }
-
-  metric {
-    category = "AllMetrics"
+  lifecycle {
+    create_before_destroy = true # évite le 409 si Terraform recrée le setting
   }
 }
 
-# ─── Public IP — Azure Bastion ────────────────────────────────────────────────
-
 resource "azurerm_public_ip" "bastion" {
-  name                = "pip-bastion-hub"
+  name                = local.pip_bastion_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   allocation_method   = "Static"
@@ -127,10 +95,8 @@ resource "azurerm_public_ip" "bastion" {
   tags                = var.tags
 }
 
-# ─── Azure Bastion ────────────────────────────────────────────────────────────
-
 resource "azurerm_bastion_host" "main" {
-  name                = "bastion-hub"
+  name                = local.bastion_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   sku                 = "Standard"
@@ -143,13 +109,12 @@ resource "azurerm_bastion_host" "main" {
   }
 }
 
-# ─── Route Table (UDR) — Force traffic through Firewall ───────────────────────
-
+# FIX 1 : bgp_route_propagation_enabled remplace disable_bgp_route_propagation (deprecated)
 resource "azurerm_route_table" "forced_firewall" {
-  name                          = "rt-forced-to-firewall"
+  name                          = local.route_table_name
   resource_group_name           = azurerm_resource_group.main.name
   location                      = azurerm_resource_group.main.location
-  disable_bgp_route_propagation = true
+  bgp_route_propagation_enabled = false # remplace disable_bgp_route_propagation
   tags                          = var.tags
 
   route {
@@ -170,10 +135,8 @@ resource "azurerm_subnet_route_table_association" "nonprod" {
   route_table_id = azurerm_route_table.forced_firewall.id
 }
 
-# ─── Network Interface — VM Production ───────────────────────────────────────
-
 resource "azurerm_network_interface" "prod" {
-  name                = "nic-vm-prod-01"
+  name                = local.nic_prod_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   tags                = var.tags
@@ -185,10 +148,8 @@ resource "azurerm_network_interface" "prod" {
   }
 }
 
-# ─── Virtual Machine — Production ─────────────────────────────────────────────
-
 resource "azurerm_linux_virtual_machine" "prod" {
-  name                            = "vm-prod-01"
+  name                            = local.vm_prod_name
   resource_group_name             = azurerm_resource_group.main.name
   location                        = azurerm_resource_group.main.location
   size                            = var.vm_size
@@ -211,10 +172,8 @@ resource "azurerm_linux_virtual_machine" "prod" {
   }
 }
 
-# ─── Network Interface — VM Non-Production ───────────────────────────────────
-
 resource "azurerm_network_interface" "nonprod" {
-  name                = "nic-vm-nonprod-01"
+  name                = local.nic_nonprod_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   tags                = var.tags
@@ -226,10 +185,8 @@ resource "azurerm_network_interface" "nonprod" {
   }
 }
 
-# ─── Virtual Machine — Non-Production ─────────────────────────────────────────
-
 resource "azurerm_linux_virtual_machine" "nonprod" {
-  name                            = "vm-nonprod-01"
+  name                            = local.vm_nonprod_name
   resource_group_name             = azurerm_resource_group.main.name
   location                        = azurerm_resource_group.main.location
   size                            = var.vm_size

@@ -1,21 +1,12 @@
-###############################################################################
-# AZ-NOR-SECURE-HUB-SPOKE — terraform.tfvars.example
-# Copiez ce fichier en terraform.tfvars et adaptez les valeurs.
-# ⚠️  Ne jamais committer terraform.tfvars en production (contient des secrets).
-###############################################################################
+resource_group_name   = "RG-ARCHITECTURE-COMPLET-NORWAY"
+location              = "norwayeast"
+admin_password        = "VotreMotDePasseComplex2026!"
+vm_size               = "Standard_B1s"
+admin_username        = "azureadmin"
+alert_email           = "votre.email@domaine.com"
+fw_denial_threshold   = 100
+log_retention_days    = 30
 
-resource_group_name = "RG-ARCHITECTURE-COMPLET-NORWAY"
-location            = "norwayeast"
-
-# Mot de passe administrateur — doit respecter la complexité Azure :
-# min 12 caractères, maj + min + chiffre + caractère spécial
-admin_password = "VotreMotDePasseComplex2026!"
-
-# Taille des VMs — Standard_B1s pour les tests, ajuster pour la prod
-vm_size        = "Standard_B1s"
-admin_username = "azureadmin"
-
-# Segmentation réseau (laisser les valeurs par défaut ou adapter)
 hub_address_space     = "10.0.0.0/16"
 hub_firewall_subnet   = "10.0.1.0/24"
 hub_bastion_subnet    = "10.0.2.0/24"
