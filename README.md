@@ -1,4 +1,4 @@
-# AZ-NOR-SECURE-HUB-SPOKE
+# AZ-NOR-SECURE-HUB-SPOKEL
 
 <div align="center">
 
@@ -1703,19 +1703,22 @@ LastUpdated = "2026-06-14"
 
 ```bash
 # Verifier les peerings
-az network vnet peering list \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --vnet-name vnet-az-nor-hub-core --output table
+az network vnet peering list `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --vnet-name vnet-az-nor-hub-core `
+  --output table
 
 # Verifier les routes effectives sur la NIC
-az network nic show-effective-route-table \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --name nic-vm-prod-01 --output table
+az network nic show-effective-route-table `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --name nic-vm-prod-01 `
+  --output table
 
 # Verifier les regles NSG effectives
-az network nic list-effective-nsg \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --name nic-vm-prod-01 --output table
+az network nic list-effective-nsg `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --name nic-vm-prod-01 `
+  --output table
 ```
 
 ---
@@ -1811,9 +1814,6 @@ Dupliquer les blocs VNet, Subnet, Peerings, NSG et VM dans les fichiers correspo
 
 **Puis-je deployer dans une autre region ?**
 Oui. Modifier `location` dans `terraform.tfvars`. Si vous utilisez le backend distant, le nom du Storage Account doit etre unique globalement et peut necessiter d etre adapte.
-
-**Comment migrer depuis Bicep ?**
-Utiliser `terraform import` pour rattacher les ressources existantes au state Terraform, ou detruire et redéployer entierement en Terraform.
 
 **Le compte Students peut-il deployer cette architecture ?**
 Oui, mais le credit s epuise rapidement. Utiliser `make vm-stop` et `make destroy` systematiquement apres les tests. Envisager le tier Firewall Basic pour economiser ~950 USD/mois.
