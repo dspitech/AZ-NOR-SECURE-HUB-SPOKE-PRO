@@ -8,10 +8,11 @@
 
 **Architecture Hub-and-Spoke sécurisée avec inspection de flux centralisée**
 
-*Version 2.0 — Migration Bicep → Terraform*
+*Version 2.0 - Migration Bicep → Terraform*
 
 [Architecture](#-architecture) • [Composants](#-composants) • [Déploiement](#-déploiement) • [Sécurité](#-sécurité)
 
+![Architecture](./hub-spoke.png)
 </div>
 
 ---
@@ -159,7 +160,7 @@ L'architecture se compose de trois réseaux virtuels interconnectés via des **V
 - **Rétention** : 30 jours · **SKU** : PerGB2018
 
 ### 7. **Machines Virtuelles**
-- `vm-prod-01` et `vm-nonprod-01` — Ubuntu 20.04 LTS, Standard_B1s
+- `vm-prod-01` et `vm-nonprod-01` - Ubuntu 20.04 LTS, Standard_B1s
 
 ### 8. **Route Table UDR** (`rt-forced-to-firewall`)
 - Force `0.0.0.0/0` vers le Firewall (`10.0.1.4`)
@@ -828,7 +829,7 @@ az account show
 ```bash
 # Cloner ou télécharger le projet
 git clone https://github.com/dspitech/AZ-NOR-SECURE-HUB-SPOKE-PRO.git
-cd az-nor-secure-hub-spoke
+cd AZ-NOR-SECURE-HUB-SPOKE-PRO
 
 # Copier le fichier de variables exemple
 cp terraform.tfvars.modele terraform.tfvars
@@ -967,8 +968,8 @@ backend "azurerm" {
 
 Le workspace `law-hub-norway` collecte automatiquement :
 
-- `AzureFirewallNetworkRule` — logs des règles réseau
-- `AzureFirewallApplicationRule` — logs des règles applicatives
+- `AzureFirewallNetworkRule` - logs des règles réseau
+- `AzureFirewallApplicationRule` - logs des règles applicatives
 - Toutes les métriques du Firewall
 
 ### Requêtes KQL utiles
@@ -1052,7 +1053,7 @@ az network nic show-effective-route-table \
 
 3. Vérifier l'état du Firewall dans le portail Azure → Règles → `Allow-Spoke-to-Spoke`
 
-###  `terraform apply` échoue — quota insuffisant
+###  `terraform apply` échoue - quota insuffisant
 
 ```bash
 # Vérifier les quotas disponibles dans la région
@@ -1130,7 +1131,7 @@ Oui, supprimez ou modifiez la règle `Allow-Spoke-to-Spoke` dans le bloc `azurer
 | Azure Bastion | Standard | ~$140 |
 | Log Analytics | PerGB2018 | ~$2.30/GB ingéré |
 | VMs (x2) | Standard_B1s | ~$15 |
-| VNets + Peerings | — | Gratuit |
+| VNets + Peerings | - | Gratuit |
 
 **Total estimé** : ~$1,400–1,500/mois hors trafic et stockage
 
