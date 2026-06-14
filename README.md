@@ -1150,12 +1150,27 @@ make apply
 **Étape 7 - Vérification**
 ```bash
 make output
+
+## installer l'extension Network Watcher sur les deux VMs
+# Installer sur vm-prod-01
+az vm extension set `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --vm-name vm-prod-01 `
+  --name NetworkWatcherAgentLinux `
+  --publisher Microsoft.Azure.NetworkWatcher `
+  --version 1.4
+
+# Installer sur vm-nonprod-01
+az vm extension set `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --vm-name vm-nonprod-01 `
+  --name NetworkWatcherAgentLinux `
+  --publisher Microsoft.Azure.NetworkWatcher `
+  --version 1.4
+
+
 # Test connectivité inter-Spoke
-az network watcher test-connectivity \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --source-resource vm-prod-01 \
-  --dest-resource vm-nonprod-01 \
-  --dest-port 22
+az network watcher test-connectivity --resource-group RG-ARCHITECTURE-COMPLET-NORWAY --source-resource vm-prod-01 --dest-resource vm-nonprod-01 --dest-port 22
 ```
 
 **Destruction**
@@ -1195,9 +1210,9 @@ C'est la configuration nécessaire pour que le pipeline GitHub Actions puisse se
 ## Étape 1 - Récupérer le Subscription ID automatiquement
 
 ```bash
-# Récupérer et stocker automatiquement
-SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-echo "Subscription ID : $SUBSCRIPTION_ID"
+# Récupérer le Subscription ID en PowerShell
+$SUBSCRIPTION_ID = az account show --query id -o tsv
+Write-Host "Subscription ID : $SUBSCRIPTION_ID"
 ```
 
 ---
@@ -1206,10 +1221,10 @@ echo "Subscription ID : $SUBSCRIPTION_ID"
 
 ```bash
 # Création avec le Subscription ID récupéré automatiquement
-az ad sp create-for-rbac \
-  --name "sp-terraform-hub-spoke" \
-  --role Contributor \
-  --scopes /subscriptions/$SUBSCRIPTION_ID \
+az ad sp create-for-rbac `
+  --name "sp-terraform-hub-spoke" `
+  --role Contributor `
+  --scopes /subscriptions/$SUBSCRIPTION_ID `
   --output json
 ```
 
