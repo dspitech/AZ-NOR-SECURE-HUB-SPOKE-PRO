@@ -1189,26 +1189,154 @@ Push/PR
 
 ### Configuration requise
 
-**1. Créer le Service Principal Azure :**
+C'est la configuration nécessaire pour que le pipeline GitHub Actions puisse se connecter à Azure et déployer l'infrastructure automatiquement.
+
+---
+
+## Étape 1 - Récupérer le Subscription ID automatiquement
+
 ```bash
+# Récupérer et stocker automatiquement
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+echo "Subscription ID : $SUBSCRIPTION_ID"
+```
+
+---
+
+## Étape 2 - Créer le Service Principal
+
+```bash
+# Création avec le Subscription ID récupéré automatiquement
 az ad sp create-for-rbac \
   --name "sp-terraform-hub-spoke" \
   --role Contributor \
-  --scopes /subscriptions/<SUBSCRIPTION_ID>
+  --scopes /subscriptions/$SUBSCRIPTION_ID \
+  --output json
 ```
 
-**2. Ajouter les secrets GitHub** (`Settings > Secrets and variables > Actions`) :
+>  Tu obtiens un JSON - **note bien ces 3 valeurs, elles n'apparaissent qu'une seule fois** :
 
-| Secret | Valeur |
-|--------|--------|
-| `ARM_CLIENT_ID` | `appId` du SP |
-| `ARM_CLIENT_SECRET` | `password` du SP |
-| `ARM_SUBSCRIPTION_ID` | ID de l'abonnement |
-| `ARM_TENANT_ID` | `tenant` du SP |
-| `TF_VAR_admin_password` | Mot de passe admin VMs |
-| `ALERT_EMAIL` | Email pour les alertes |
+```json
+{
+  "appId":    "aaa-bbb-ccc",
+  "password": "xxx-yyy-zzz",
+  "tenant":   "111-222-333"
+}
+```
 
-**3. Créer l'environnement GitHub "production"** (`Settings > Environments`) avec une règle d'approbation manuelle avant le `apply`.
+| Clé JSON | Secret GitHub |
+|----------|--------------|
+| `appId` | `ARM_CLIENT_ID` |
+| `password` | `ARM_CLIENT_SECRET` |
+| `tenant` | `ARM_TENANT_ID` |
+
+---
+
+## Étape 3 - Vérifier que le SP est bien créé
+
+```bash
+az ad sp show --id $(az ad sp list --display-name "sp-terraform-hub-spoke" --query "[0].appId" -o tsv)
+```
+
+---
+
+## Étape 4 - Ajouter les secrets dans GitHub
+
+Va sur ton repo GitHub :
+
+```
+Settings → Secrets and variables → Actions → New repository secret
+```
+
+Ajoute ces 6 secrets un par un :
+
+| Secret | Où le trouver |
+|--------|--------------|
+| `ARM_CLIENT_ID` | `appId` du JSON |
+| `ARM_CLIENT_SECRET` | `password` du JSON |
+| `ARM_TENANT_ID` | `tenant` du JSON |
+| `ARM_SUBSCRIPTION_ID` | résultat de la commande ci-dessous |
+| `TF_VAR_admin_password` | ton mot de passe VM (ex: `MonPass2026!`) |
+| `ALERT_EMAIL` | ton email pour les alertes |
+
+```bash
+# Pour ARM_SUBSCRIPTION_ID
+az account show --query id -o tsv
+```
+
+---
+
+## Étape 5 - Créer l'environnement "production" dans GitHub
+
+```
+Settings → Environments → New environment → Nommer : production
+```
+
+Puis dans cet environnement :
+
+```
+Environment protection rules
+  →  Required reviewers
+  → Ajouter ton nom GitHub
+  → Save protection rules
+```
+
+---
+
+## Étape 6 - Vérifier que tout fonctionne
+
+```bash
+# Tester l'authentification du SP manuellement
+az login \
+  --service-principal \
+  --username $ARM_CLIENT_ID \
+  --password $ARM_CLIENT_SECRET \
+  --tenant $ARM_TENANT_ID
+
+# Vérifier les permissions
+az role assignment list \
+  --assignee $ARM_CLIENT_ID \
+  --output table
+```
+
+---
+
+## Étape 7 - Déclencher le pipeline
+
+```bash
+git add .
+git commit -m "ci: configuration GitHub Actions"
+git push origin main
+```
+
+Puis sur GitHub :
+
+```
+Actions → Terraform CI/CD → job Apply → Review deployments → Approve
+```
+
+---
+
+## Résumé du flux complet
+
+```
+az login (local)
+    │
+    ▼
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+    │
+    ▼
+az ad sp create-for-rbac → JSON (appId / password / tenant)
+    │
+    ▼
+GitHub Secrets (6 secrets)
+    │
+    ▼
+GitHub Environment "production" + approbation manuelle
+    │
+    ▼
+git push → pipeline déclenché → Apply après approbation 
+```
 
 ---
 
