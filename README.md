@@ -1388,10 +1388,10 @@ Oui, mais le crédit s'épuise vite. Utilisez `make vm-stop` et `make destroy` s
 |-----------|-----|-----------------|-----------|
 | Azure Firewall | Standard | ~$1,250 | ~$41 |
 | Azure Bastion | Standard | ~$140 | ~$4.70 |
-| Log Analytics | PerGB2018 | ~$2.30/Go | — |
+| Log Analytics | PerGB2018 | ~$2.30/Go | - |
 | VMs (x2) | Standard_B1s | ~$15 | ~$0.50 |
-| VNets + Peerings | — | Gratuit | — |
-| Storage (tfstate) | LRS | ~$0.05 | — |
+| VNets + Peerings | - | Gratuit | - |
+| Storage (tfstate) | LRS | ~$0.05 | - |
 
 **Total estimé** : ~$1,405–1,500/mois hors trafic
 
@@ -1423,7 +1423,7 @@ Oui, mais le crédit s'épuise vite. Utilisez `make vm-stop` et `make destroy` s
 - [Azure Firewall](https://docs.microsoft.com/azure/firewall/)
 - [NSG Azure](https://docs.microsoft.com/azure/virtual-network/network-security-groups-overview)
 - [Azure Bastion](https://docs.microsoft.com/azure/bastion/)
-- [Checkov — IaC Security Scanner](https://www.checkov.io/)
+- [Checkov - IaC Security Scanner](https://www.checkov.io/)
 
 ---
 
