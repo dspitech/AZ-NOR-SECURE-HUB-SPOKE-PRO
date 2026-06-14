@@ -22,6 +22,10 @@
 
 ## Table des matières
 
+- [Pour les étudiants](#-pour-les-étudiants) ⭐ **COMMENCER ICI**
+- [Concepts fondamentaux](#-concepts-fondamentaux)
+- [Glossaire technique](#-glossaire-technique)
+- [Guide d'apprentissage progressif](#-guide-dapprentissage-progressif)
 - [Vue d'ensemble](#-vue-densemble)
 - [Avantages stratégiques](#-avantages-stratégiques)
 - [Architecture](#-architecture)
@@ -46,9 +50,281 @@
 - [Bonnes pratiques Terraform](#-bonnes-pratiques-terraform)
 - [Gestion des coûts — Compte Students](#-gestion-des-coûts--compte-students)
 - [Dépannage](#-dépannage)
+- [Exercices pratiques](#-exercices-pratiques-pour-les-étudiants)
 - [FAQ](#-faq)
 - [Coûts estimés](#-coûts-estimés)
 - [Évolutions futures](#-évolutions-futures)
+- [Ressources d'apprentissage](#-ressources-dapprentissage-pour-les-étudiants)
+- [Ressources](#-ressources)
+
+---
+
+## 🎓 Pour les étudiants
+
+Bienvenue ! Ce projet est conçu pour vous enseigner les architectures réseau cloud modernes.
+
+### 📚 Avant de commencer
+
+**Si vous êtes nouveau dans le cloud**, lisez dans cet ordre :
+1. **D'abord** : [Concepts fondamentaux](#-concepts-fondamentaux)
+2. **Puis** : [Glossaire technique](#-glossaire-technique)  
+3. **Ensuite** : [Guide d'apprentissage progressif](#-guide-dapprentissage-progressif)
+4. **Enfin** : Explorez le [Code source Terraform](#-code-source-terraform)
+
+### 🚀 Parcours d'apprentissage recommandé
+
+| Étape | Durée | Qu'apprenez-vous ? |
+|-------|-------|-------------------|
+| **1. Concepts** | 30 min | Qu'est-ce qu'une architecture Hub-Spoke ? Pourquoi ? |
+| **2. Termes clés** | 20 min | Vocabulary Azure (VNet, NSG, Firewall, etc.) |
+| **3. Architecture** | 30 min | Comment tous les éléments se connectent |
+| **4. Déploiement** | 45 min | Exécuter le projet et voir le résultat |
+| **5. Exploration** | 1h+ | Modifier le code et observer les changements |
+
+---
+
+## 🏗️ Concepts fondamentaux
+
+### 1️⃣ Qu'est-ce qu'une Architecture Hub-and-Spoke ?
+
+**Définition simple** :
+- **Hub** = Centre de contrôle, point de passage obligatoire
+- **Spokes** = Branches isolées qui se connectent au Hub
+- **Avantage** = Tout le trafic passe par le centre → sécurité centralisée
+
+**Analogie du monde réel** :
+```
+Imaginez une gare centrale (Hub) avec des lignes de train (Spokes) :
+- Gare centrale = où on contrôle tout
+- Lignes de train = vers différentes villes
+- Voyageurs = données/trafic réseau
+
+Pour aller de la ville A à la ville B, tous les voyageurs passent par la gare centrale.
+De la même façon, tout le trafic réseau passe par le Firewall du Hub.
+```
+
+**Avantages pour la sécurité** :
+- ✅ **Inspection centralisée** : Un seul endroit à surveiller
+- ✅ **Contrôle granulaire** : Règles appliquées une seule fois, valables pour tous
+- ✅ **Isolation** : Les Spokes ne communiquent jamais directement
+
+### 2️⃣ Les trois environnements du projet
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      HUB (Cœur de réseau)                     │
+│  • Azure Firewall (inspecte tout)                             │
+│  • Azure Bastion (accès SSH/RDP sécurisé)                     │
+│  • Log Analytics (surveillance)                               │
+│  Réseau : 10.0.0.0/16                                         │
+└──────────────────────────────────────────────────────────────┘
+         │                                      │
+         ▼                                      ▼
+    PRODUCTION                            NON-PRODUCTION
+    ├─ Données réelles                    ├─ Tests
+    ├─ 192.168.x.x                       ├─ Développement
+    ├─ NSG strict                        ├─ 172.16.x.x
+    └─ Haute sécurité                    └─ NSG modéré
+```
+
+### 3️⃣ Défense en profondeur : Les 5 couches de sécurité
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  Couche 1 : Azure Firewall (L4/L7)                           ║
+║  → Inspecte chaque paquet, bloque les menaces               ║
+├──────────────────────────────────────────────────────────────┤
+║  Couche 2 : UDR (Routage Forcé)                             ║
+║  → Impossible de contourner le Firewall                     ║
+├──────────────────────────────────────────────────────────────┤
+║  Couche 3 : NSG (Network Security Groups)                    ║
+║  → Deuxième vérification, filtrage local                    ║
+├──────────────────────────────────────────────────────────────┤
+║  Couche 4 : VMs sans IP publique                             ║
+║  → Pas d'accès direct depuis Internet                        ║
+├──────────────────────────────────────────────────────────────┤
+║  Couche 5 : Azure Bastion                                    ║
+║  → Accès admin sécurisé, connexion chiffrée                 ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+**Pourquoi 5 couches ?** → Si une couche est contournée, les autres restent actives !
+
+### 4️⃣ Segmentation des réseaux
+
+**Concept clé** : Les trois environnements utilisent des **plages d'adresses IP entièrement différentes** :
+
+| Environnement | Plage IP | Signification |
+|---|---|---|
+| **Hub** | 10.0.0.0/16 | Réseau central, gestion |
+| **Production** | 192.168.0.0/16 | Données réelles, clients |
+| **Non-Prod** | 172.16.0.0/12 | Tests, développement |
+
+**Bénéfice** : Un hacker qui accède à non-prod ne peut **physiquement pas** accéder à prod.
+
+### 5️⃣ Le cycle d'une requête réseau
+
+```
+VM Production (192.168.1.4) envoie données à VM Non-Prod (172.16.1.4)
+                    │
+                    ▼
+        Table de routage (UDR)
+        "Tout le trafic external → 10.0.1.4"
+                    │
+                    ▼
+        Azure Firewall (10.0.1.4)
+        ✓ Vérifie : source prod, dest non-prod → Allow
+                    │
+                    ▼
+        NSG Non-Prod
+        ✓ Vérifie : source prod, port ? → Dépend de la règle
+                    │
+                    ▼
+        VM Non-Prod (172.16.1.4)
+        ✓ Données reçues
+```
+
+---
+
+## 📖 Glossaire technique
+
+### A
+- **Azure Bastion** : Service de passerelle sécurisée pour accéder aux VMs sans IP publique. RDP/SSH chiffré.
+- **Azure Firewall** : Pare-feu géré au niveau du réseau (couche 3/4) ET applicatif (couche 7).
+
+### D
+- **Défense en profondeur** : Utiliser plusieurs couches de sécurité indépendantes. Si une tombe, les autres restent.
+
+### F
+- **Firewall Policy** : Ensemble de règles appliquées au Firewall (Allow/Deny).
+
+### I
+- **IaC (Infrastructure as Code)** : Définir l'infrastructure dans du code (Terraform) au lieu de cliquer manuellement.
+- **IP Privée** : Adresse interne au réseau (10.x, 172.x, 192.168.x). Pas accessible depuis Internet.
+- **IP Publique** : Adresse routée sur Internet. Accessible du monde entier.
+
+### L
+- **Log Analytics Workspace** : Service Azure pour centraliser et analyser les logs. Utilise requêtes KQL.
+
+### N
+- **NSG (Network Security Group)** : Liste de règles de filtrage appliquée à un subnet ou une interface réseau.
+- **NIC (Network Interface Card)** : Interface réseau virtuelle pour une VM.
+
+### P
+- **Peering VNet** : Connexion directe et privée entre deux réseaux virtuels Azure.
+- **Provider Terraform** : Plugin qui traduit `.tf` en appels API (Azure, AWS, GCP, etc.).
+
+### R
+- **Resource Group** : Conteneur logique regroupant toutes les ressources d'un projet.
+- **Règle NSG** : Directive Allow/Deny sur une source, destination, port et protocole.
+- **Route Table (UDR)** : Définit où envoyer le trafic selon la destination (ex: tout vers le Firewall).
+
+### S
+- **Service Principal** : Identité de service (ex: pour CI/CD) avec permissions limitées.
+- **SKU (Stock Keeping Unit)** : Référence de facturation d'une ressource (Standard, Basic, Premium, etc.).
+- **Subnet** : Subdivision d'un VNet avec sa propre plage d'adresses IP et ses NSGs.
+
+### T
+- **Terraform** : Outil d'IaC qui crée/modifie/détruit l'infrastructure via code `.tf`.
+- **Terraform State** : Fichier qui mémorise l'état actuel de l'infra. Local ou distant (backend Azure Storage).
+
+### U
+- **UDR (User Defined Route)** : Table de routage personnalisée forcant le trafic vers une appliance (ex: Firewall).
+
+### V
+- **VNet (Virtual Network)** : Réseau privé isolé dans Azure. Équivalent du VPC en AWS.
+- **VM (Virtual Machine)** : Ordinateur virtuel exécutant un OS (Linux, Windows).
+
+### Z
+- **Zone de disponibilité** : Datacenter physique indépendant dans une région Azure.
+
+---
+
+## 📚 Guide d'apprentissage progressif
+
+### **Niveau 1 : Débutant complet** ⭐ (1-2h)
+
+**Objectif** : Déployer le projet et comprendre les bases
+
+1. **Lire [Vue d'ensemble](#-vue-densemble)** (10 min)
+   - Focus : Qu'est-ce qui est construit ?
+   - Question clé : "Pourquoi Hub-and-Spoke ?"
+
+2. **Lire [Composants](#-composants)** (10 min)
+   - Focus : Liste des ressources
+   - Question clé : "À quoi sert chaque ressource ?"
+
+3. **Regarder la [Topologie réseau](#-architecture)** (10 min)
+   - Focus : Visualiser les connexions
+   - Dessinez-la sur papier !
+
+4. **Faire le [Déploiement](#-déploiement)** (1h)
+   - Suivez "Méthode rapide avec Make"
+   - `make plan` → `make apply`
+
+5. **Vérifier l'output** (10 min)
+   ```bash
+   make output
+   ```
+   - Notez les IPs publiques
+   - Accédez à Bastion via le portail Azure
+
+### **Niveau 2 : Intermédiaire** ⭐⭐ (3-5h)
+
+**Objectif** : Comprendre le code Terraform
+
+1. **Lire [Structure du projet](#-structure-du-projet)** (15 min)
+2. **Étudier les fichiers Terraform dans cet ordre** :
+   - **`locals.tf`** : Conventions de nommage (15 min)
+     - Question : "Pourquoi centraliser les noms ?"
+   - **`variables.tf`** : Variables et validations (20 min)
+     - Question : "Pourquoi valider les données ?"
+   - **`network.tf`** : VNets et Subnets (20 min)
+     - Question : "Comment les réseaux se connectent ?"
+   - **`nsg.tf`** : Filtrage par couche L4 (20 min)
+     - Question : "Quelles règles permettent/bloquent quoi ?"
+   - **`main.tf`** : Firewall, VMs, Bastion (30 min)
+     - Question : "Comment Terraform crée ces ressources ?"
+
+3. **Modifier une variable et redéployer** (30 min)
+   - Changez `vm_size` de `Standard_B1s` à `Standard_B2s`
+   - Exécutez `make plan` et observez les différences
+   - Exécutez `make apply`
+   - Revertez : `make destroy` + `make apply`
+
+4. **Lire [Sécurité](#-sécurité)** (15 min)
+   - Focus : Les 5 couches
+
+### **Niveau 3 : Avancé** ⭐⭐⭐ (6-10h)
+
+**Objectif** : Maîtriser et étendre l'architecture
+
+1. **Ajouter un troisième Spoke** (2-3h)
+   - Dupliquer les ressources prod/nonprod
+   - Créer `vnet-az-nor-spoke-qa` pour QA
+   - Ajouter les peerings hub ↔ QA
+   - Ajouter le NSG et UDR
+   - Tester la connectivité
+
+2. **Configurer le backend distant** (1h)
+   - Suivre [Déploiement - Bootstrap backend](#-déploiement)
+   - Tester l'état partagé en équipe
+
+3. **Mettre en place CI/CD GitHub Actions** (1-2h)
+   - Suivre [CI/CD GitHub Actions](#-cicd-github-actions)
+   - Automatiser validate + plan + apply
+
+4. **Créer un module Terraform réutilisable** (2-3h)
+   - Extraire `modules/spoke/` pour créer un Spoke
+   - Appeler le module 3 fois (prod, nonprod, qa)
+   - Réduire de 100 lignes la complexité
+
+5. **Interroger les logs avec KQL** (1h)
+   - Accéder à Log Analytics
+   - Exécuter les requêtes de [Monitoring](#-monitoring)
+   - Observer le trafic bloqué
+
+---
 
 ---
 
@@ -68,6 +344,95 @@ Ce projet implémente une architecture réseau **Hub-and-Spoke** sécurisée sur
 -  **Infrastructure as Code** : 100% Terraform, reproductible en quelques commandes
 -  **CI/CD** : Pipeline GitHub Actions (Validate → Checkov → Plan → Apply)
 -  **Nommage centralisé** : `locals.tf` comme source unique de vérité
+
+---
+
+## 🔄 Architecture expliquée - Le flux du trafic réseau
+
+### Flux 1️⃣ : Une VM Production veut communiquer avec une VM Non-Production
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ VM Production (192.168.1.4) → VM Non-Prod (172.16.1.4)             │
+└─────────────────────────────────────────────────────────────────────┘
+
+ÉTAPE 1 : La VM prod envoie un paquet
+    └─ Adresse destination : 172.16.1.0/24 (Non-Prod)
+    └ Action : "Je ne connais pas ce réseau !"
+
+ÉTAPE 2 : Table de routage (UDR) du subnet Prod
+    └─ Règle : "0.0.0.0/0 (tout) → 10.0.1.4 (Firewall)"
+    └ Action : "Envoyer au Firewall"
+
+ÉTAPE 3 : Azure Firewall (10.0.1.4)
+    ✓ Vérifie la règle : Allow-Spoke-to-Spoke
+    ✓ Source = 192.168.0.0/16 ? OUI ✓
+    ✓ Dest = 172.16.0.0/12 ? OUI ✓
+    ✓ Protocole = TCP/UDP/ICMP ? OUI ✓
+    └ Action : "Paquet autorisé, envoyer vers Non-Prod"
+
+ÉTAPE 4 : NSG du subnet Non-Prod
+    ✓ Vérifie les règles :
+      • Allow-SSH-From-Bastion ? NON (source = 192.168.1.0/24)
+      • Allow-HTTP-HTTPS ? Dépend du port
+      • Deny-All-Inbound ? Appliqué si aucune Allow ne match
+    └ Action : Allow ou Deny selon le port
+
+ÉTAPE 5 : VM Non-Prod reçoit le paquet (ou le rejet)
+    └─ Si ALLOW : Traitement normal
+    └─ Si DENY : Paquet ignoré
+```
+
+### Flux 2️⃣ : Accès administrateur sécurisé via Azure Bastion
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Administrateur (depuis Internet) → VM via Bastion                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+ÉTAPE 1 : Admin ouvre Bastion dans le portail Azure
+    └─ Authentification Azure AD / MFA
+
+ÉTAPE 2 : Bastion établit tunnel SSL/TLS chiffré
+    └─ Source : Bastion 10.0.2.0/24
+    └ Destination : VM Prod/Non-Prod :22 SSH
+
+ÉTAPE 3 : Azure Firewall (doit permettre localement)
+    └─ Remarque : Bastion → VMs = trafic local au Hub
+    └─ Règle implicite : autorisé
+
+ÉTAPE 4 : NSG du subnet Prod/Non-Prod
+    ✓ Règle Allow-SSH-From-Bastion match :
+      • Source = 10.0.2.0/24 ✓
+      • Port = 22 ✓
+    └ Action : ALLOW
+
+ÉTAPE 5 : Admin peut SSH dans la VM
+    └─ Pas d'IP publique sur la VM
+    └─ Connexion chiffrée via Bastion
+    └─ Journalisée dans Log Analytics
+```
+
+### Flux 3️⃣ : Tentative d'accès non autorisée (exemple : SSH de Prod à Non-Prod)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ VM Production :22 → VM Non-Prod (NSG n'autorise que Bastion)       │
+└─────────────────────────────────────────────────────────────────────┘
+
+ÉTAPE 1-3 : Même que Flux 1 (UDR → Firewall → Allow)
+
+ÉTAPE 4 : NSG du subnet Non-Prod
+    ✗ Vérification des règles Allow :
+      • Allow-SSH-From-Bastion ? NON (source = 192.168.1.0/24)
+      • Allow-HTTP-HTTPS ? NON (port 22 ≠ 80,443)
+      • Deny-All-Inbound ? OUI ✓ Appliqué
+    └ Action : DENY - Paquet rejeté
+
+ÉTAPE 5 : VM Non-Prod
+    └─ N'a jamais reçu le paquet
+    └─ Aucune réponse à l'admin → "Connection timeout"
+```
 
 ---
 
@@ -1078,18 +1443,53 @@ tags = {
 
 ---
 
-##  Prérequis
+## 📋 Prérequis
+
+### Prérequis techniques
 
 -  [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.5.0
 -  [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) ≥ 2.50.0
 -  [Make](https://www.gnu.org/software/make/) (optionnel mais recommandé)
+   - Windows : https://chocolatey.org/packages/make ou Git Bash
+   - Mac/Linux : `apt-get install make` ou `brew install make`
 -  [Checkov](https://www.checkov.io/) (`pip install checkov`) pour les scans sécurité
--  Abonnement Azure actif (Students ou payant)
--  Permissions Contributor ou Owner
+-  Abonnement Azure actif (Students, payant, ou trial gratuit)
+-  Permissions Contributor ou Owner sur l'abonnement
+
+### Prérequis d'apprentissage pour les étudiants
+
+| Niveau | Prérequis | Ressource |
+|--------|-----------|-----------|
+| **Débutant** | Notions de réseau (IP, subnet, port) | [Fondamentaux - OSI Model](https://en.wikipedia.org/wiki/OSI_model) |
+| **Débutant** | Connaître ce qu'est un cloud (AWS/Azure/GCP) | Ce README Section "Concepts" |
+| **Intermédiaire** | Connaître la syntaxe HCL/Terraform basique | [Terraform Learn - Intro](https://learn.hashicorp.com/terraform) |
+| **Avancé** | Connaître Linux (SSH, commandes shell) | `man ssh` ou cours en ligne |
+| **Avancé** | Connaître Git et GitHub | [Git Basics](https://git-scm.com/book/en/v2) |
+
+**Si vous manquez une connaissance ?** Pas de panique ! Vous pouvez apprendre en chemin. Démarrez par le **Niveau 1 : Débutant** du [Guide d'apprentissage progressif](#-guide-dapprentissage-progressif).
 
 ---
 
+## 📋 Prérequis
+
 ##  Déploiement
+
+### 🎯 Vue d'ensemble du déploiement (pour les étudiants)
+
+Le déploiement en 3 étapes :
+1. **`make init`** : Initialise Terraform (télécharge les plugins Azure)
+2. **`make plan`** : Montre ce que Terraform **va créer** (sans rien toucher)
+3. **`make apply`** : Crée réellement les ressources sur Azure
+
+**Temps estimé** : 15-20 minutes pour créer toutes les ressources.
+
+**Coûts estimés** :
+- Firewall Standard : ~$41/jour (le plus cher)
+- VMs x2 : ~$0.50/jour
+- Bastion + Logs : ~$5/jour
+- **Total** : ~$46/jour = ~$1,400/mois
+
+⚠️ **Pour les comptes Students** : Le crédit $100 s'épuise en ~2-3 jours. Utilisez `make destroy` après les tests !
 
 ### Méthode rapide avec Make
 
@@ -1227,6 +1627,185 @@ make destroy   # Demande confirmation "destroy"
 ```
 
 ---
+
+## 🚀 Premiers pas après le déploiement (Pour les étudiants)
+
+### Étape 1 : Explorer ce qui a été créé (10 min)
+
+```bash
+# Voir toutes les sorties Terraform
+make output
+
+# Notes mentales :
+# - firewall_public_ip : IP du Firewall (pour voir les logs)
+# - bastion_public_ip : IP de Bastion (accès SSH/RDP)
+# - vm_prod_private_ip : IP privée de la VM Prod
+# - vm_nonprod_private_ip : IP privée de la VM Non-Prod
+```
+
+### Étape 2 : Accéder à une VM via Bastion (10 min)
+
+```bash
+# Via le portail Azure :
+# 1. Aller à Resource Groups → RG-ARCHITECTURE-COMPLET-NORWAY
+# 2. Cliquer sur vm-prod-01
+# 3. En haut : "Connect" → "Bastion"
+# 4. Username: azureadmin
+# 5. Password: (celui de terraform.tfvars)
+# 6. Vous êtes connecté en SSH ! 🎉
+```
+
+### Étape 3 : Tester la connectivité réseau (15 min)
+
+```bash
+# Dans la VM prod (via Bastion), tentez :
+ping 172.16.1.4   # L'IP de la VM non-prod
+
+# Résultat : Timeout (normal ! NSG bloque le ping SSH port 22 non-prod)
+```
+
+### Étape 4 : Observer les logs Firewall (15 min)
+
+```bash
+# Via le portail Azure :
+# 1. Aller à Log Analytics Workspaces → law-az-nor-hub-norway
+# 2. Onglet Logs
+# 3. Exécuter cette requête KQL :
+
+AzureDiagnostics
+| where Category == "AzureFirewallNetworkRule"
+| summarize count() by Action
+```
+
+Vous verrez :
+- Combien de paquets ont été **Allow**d
+- Combien ont été **Deny**d
+- C'est la preuve que le Firewall marche !
+
+---
+
+## ✏️ Exercices pratiques pour les étudiants
+
+### Exercice 1 : Modifier une variable et voir l'impact ⭐ (30 min)
+
+**Objectif** : Comprendre comment Terraform met à jour l'infrastructure
+
+**Instructions** :
+1. Ouvrir `terraform.tfvars`
+2. Changer `vm_size = "Standard_B1s"` à `vm_size = "Standard_B2s"` (VM plus puissante)
+3. Exécuter `make plan` et observer les changements proposés
+4. Exécuter `make apply`
+5. Vérifier dans le portail Azure que la taille a changé
+
+**Questions** :
+- Qu'est-ce que Terraform a créé/modifié/détruit ?
+- Les VMs ont-elles été redémarrées ?
+
+**Réponse** : Terraform a modifié la taille. Les VMs ont dû être recréées (downtime).
+
+---
+
+### Exercice 2 : Ajouter une règle NSG ⭐⭐ (1h)
+
+**Objectif** : Autoriser HTTP/HTTPS de Prod vers Non-Prod
+
+**Instructions** :
+1. Ouvrir `nsg.tf`
+2. Dans `azurerm_network_security_group.nonprod`, ajouter une règle :
+
+```hcl
+security_rule {
+  name                       = "Allow-Custom-App-From-Prod"
+  priority                   = 130
+  direction                  = "Inbound"
+  access                     = "Allow"
+  protocol                   = "Tcp"
+  source_port_range          = "*"
+  destination_port_ranges    = ["8080", "9000"]
+  source_address_prefix      = var.prod_address_space
+  destination_address_prefix = var.nonprod_subnet
+}
+```
+
+3. Exécuter `make plan` et vérifier le changement proposé
+4. Exécuter `make apply`
+5. Tester depuis vm-prod : `curl http://172.16.1.4:8080`
+
+**Questions** :
+- Pourquoi utiliser la priority 130 ?
+- Que se passe-t-il si deux règles ont la même priority ?
+
+**Réponse** : Les règles NSG se traitent par ordre de priorité (plus bas = d'abord). Les doublons causent une erreur.
+
+---
+
+### Exercice 3 : Interroger les logs Firewall ⭐⭐ (45 min)
+
+**Objectif** : Utiliser KQL pour analyser le trafic bloqué
+
+**Instructions** :
+1. Ouvrir Log Analytics Workspace (portail Azure)
+2. Onglet "Logs"
+3. Exécuter cette requête KQL :
+
+```kusto
+AzureDiagnostics
+| where Category == "AzureFirewallNetworkRule"
+| where TimeGenerated > ago(1h)
+| project TimeGenerated, srcIp_s, destIp_s, Protocol=protocol_s, Action=msg_s
+| order by TimeGenerated desc
+```
+
+4. Observer les résultats :
+   - Quels paquets ont transité ?
+   - Combien étaient Allow vs Deny ?
+
+**Questions** :
+- Quelle est la source IP la plus active ?
+- Quel protocole domine (TCP/UDP) ?
+
+---
+
+### Exercice 4 : Créer un troisième Spoke (QA) ⭐⭐⭐ (3h)
+
+**Objectif** : Ajouter un nouvel environnement (avancé)
+
+**Instructions** :
+1. Dans `variables.tf`, ajouter :
+
+```hcl
+variable "qa_address_space" {
+  type    = string
+  default = "10.100.0.0/16"
+}
+
+variable "qa_subnet" {
+  type    = string
+  default = "10.100.1.0/24"
+}
+```
+
+2. Dans `locals.tf`, ajouter :
+
+```hcl
+vnet_qa_name  = "vnet-${local.prefix}-spoke-qa"
+snet_qa_name  = "snet-qa-resources"
+nsg_qa_name   = "nsg-qa-resources"
+nic_qa_name   = "nic-vm-qa-01"
+vm_qa_name    = "vm-qa-01"
+```
+
+3. Dans `network.tf`, dupliquer les ressources VNet/Subnet/Peering pour QA
+4. Dans `nsg.tf`, dupliquer le NSG pour QA
+5. Dans `main.tf`, dupliquer la VM pour QA
+6. Exécuter `make plan` (vérifier que 12-15 nouvelles ressources seront créées)
+7. Exécuter `make apply`
+
+**Résultat** : Vous avez maintenant Hub + 3 Spokes (Prod, Non-Prod, QA) !
+
+---
+
+**Destruction
 
 ##  CI/CD GitHub Actions
 
@@ -1538,7 +2117,114 @@ sku_tier = "Basic"
 
 ##  Dépannage
 
-###  Les VMs ne communiquent pas
+### ⚠️ Erreurs courantes et solutions
+
+#### Erreur 1 : "Cannot access Backend State"
+
+```
+Error: Error acquiring the lock
+│ Code="RequestDisallowedByPolicy"
+```
+
+**Cause** : Le backend distant n'est pas configuré ou les credentials sont mauvaises
+
+**Solution** :
+```bash
+# Commenter le bloc backend dans backend.tf
+# Puis relancer
+terraform init
+
+# Ou réinitialiser complètement
+rm -rf .terraform*
+terraform init
+```
+
+---
+
+#### Erreur 2 : "Quota insuffisant"
+
+```
+Code="QuotaExceeded"
+Details=Cores subscription... quota exceeded
+```
+
+**Cause** : Compte Students avec peu de quota
+
+**Solution** :
+```bash
+# Arrêter les VMs en cours
+make vm-stop
+
+# Ou détruire les autres ressources
+make destroy
+```
+
+---
+
+#### Erreur 3 : "Invalid authentication credentials"
+
+```
+Code="InvalidAuthenticationToken"
+```
+
+**Cause** : Token Azure expiré ou mauvaises identifiants
+
+**Solution** :
+```bash
+# Se reconnecter
+az login
+az account set --subscription "<ID>"
+
+# Relancer
+make plan
+```
+
+---
+
+#### Erreur 4 : "NSG rule priority conflict"
+
+```
+Error: conflicting security rule priorities
+```
+
+**Cause** : Deux règles NSG avec la même priority
+
+**Solution** :
+```hcl
+# Changer les priorities pour qu'elles soient uniques
+# Priority doit être entre 100 et 4096
+# Plus bas = d'abord
+
+security_rule {
+  priority = 120   # Changé de 100 à 120
+  ...
+}
+```
+
+---
+
+#### Erreur 5 : "Terraform plan always shows changes"
+
+```
+# Sortie : Terraform plan affiche à chaque fois de nouveaux changements
+```
+
+**Cause** : Généralement la fonction `timestamp()` dans `locals.tf`
+
+**Solution** :
+```hcl
+# Dans locals.tf, remplacer
+LastUpdated = timestamp()
+
+# Par une date fixe
+LastUpdated = "2026-06-14"
+```
+
+---
+
+### 🔍 Pas d'erreur, mais quelque chose ne fonctionne pas ?
+
+#### Les VMs ne communiquent pas
 
 ```bash
 # 1. Vérifier les peerings
@@ -1558,7 +2244,7 @@ az network firewall show \
   --query "provisioningState"
 ```
 
-###  NSG bloque le trafic attendu
+#### NSG bloque le trafic attendu
 
 ```bash
 # Vérifier les règles NSG effectives sur la NIC
@@ -1568,21 +2254,15 @@ az network nic list-effective-nsg \
   --output table
 ```
 
-###  Quota insuffisant (compte Students)
+#### Je veux voir quels paquets passe le Firewall
 
 ```bash
-make fw-stop   # Libère le quota Firewall
-# Ou : terraform destroy pour tout libérer
-```
-
-###  Erreur `timestamp()` dans locals.tf
-
-La fonction `timestamp()` dans les tags génère un plan différent à chaque exécution. Si cela pose problème :
-```hcl
-# Remplacer dans locals.tf
-LastUpdated = timestamp()
-# Par :
-LastUpdated = "2026-06-14"
+# Via Log Analytics - requête KQL
+AzureDiagnostics
+| where Category == "AzureFirewallNetworkRule"
+| where TimeGenerated > ago(1h)
+| summarize count() by Action, srcIp_s, destIp_s
+| order by count_ desc
 ```
 
 ---
@@ -1638,6 +2318,101 @@ Oui, mais le crédit s'épuise vite. Utilisez `make vm-stop` et `make destroy` s
 - [ ] Azure WAF (Web Application Firewall)
 - [ ] Azure Sentinel (SIEM) pour la détection avancée
 - [ ] Dashboard Azure Monitor personnalisé
+
+---
+
+##  Ressources d'apprentissage pour les étudiants
+
+### 📚 Fondamentaux du cloud et réseaux
+
+**Avant de démarrer, comprendre ces concepts de base** :
+- [Azure Fundamentals (Microsoft Learn)](https://docs.microsoft.com/learn/paths/az-900-describe-cloud-concepts/) - 2h
+- [Fondamentaux de l'architecture réseau](https://www.youtube.com/watch?v=HexaSQuaZiw) - 20 min
+- [OSI Model expliqué](https://www.youtube.com/watch?v=vv4y_uOneC0) - 10 min
+- [CIDR Notation (Subnetting)](https://www.youtube.com/watch?v=z07HTSzzp3o) - 15 min
+
+### 🏗️ Architecture Cloud
+
+**Comprendre le Hub-and-Spoke et alternatives** :
+- [Azure reference architectures - Hub-spoke](https://docs.microsoft.com/azure/architecture/reference-architectures/hybrid-networking/hub-spoke) - 30 min
+- [Mesh networks vs Hub-spoke](https://www.youtube.com/watch?v=vEFPTqMFV0o) - 20 min
+- [Architecture patterns Azure](https://docs.microsoft.com/azure/architecture/browse) - À explorer
+- [Well-Architected Framework](https://docs.microsoft.com/azure/architecture/framework/) - Introduction
+
+### 🔒 Sécurité réseau
+
+**Approfondir la défense en profondeur et sécurité** :
+- [Azure Firewall vs NSG (guide complet)](https://docs.microsoft.com/azure/architecture/example-scenario/network/secure-hybrid-network) - 45 min
+- [Network Security Best Practices](https://docs.microsoft.com/azure/security/fundamentals/network-best-practices) - 30 min
+- [Defense in Depth Strategy](https://www.youtube.com/watch?v=F2dWm6eA4oI) - 20 min
+- [Cyber Security Explained (John Hammond)](https://www.youtube.com/playlist?list=PLTgRMOcmRuDqxVnVRMvL1c-Zw9e4YVlFl) - À explorer
+
+### 💻 Infrastructure as Code (Terraform)
+
+**Maîtriser Terraform** :
+- [Terraform Fundamentals (HashiCorp Learn)](https://learn.hashicorp.com/collections/terraform/aws-get-started) - 3h
+- [Terraform Best Practices](https://www.terraform.io/docs/cloud/guides/recommended-practices.html) - 30 min
+- [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs) - Documentation
+- [Terraform State Management](https://www.terraform.io/docs/state/index.html) - 20 min
+- [HCL Syntax Deep Dive](https://www.youtube.com/watch?v=Z-1fJ6IYIxg) - 30 min
+
+### 🔧 Outils pratiques
+
+**Apprendre les outils utilisés dans ce projet** :
+- [Azure CLI Basics](https://docs.microsoft.com/cli/azure/get-started-with-azure-cli) - 1h
+- [Azure Portal Tour](https://docs.microsoft.com/azure/azure-portal/azure-portal-overview) - 20 min
+- [Git & GitHub Essentials](https://guides.github.com/) - 1h
+- [GitHub Actions for Beginners](https://www.youtube.com/watch?v=TLB5My32To8) - 30 min
+- [Azure Monitor & Log Analytics](https://docs.microsoft.com/azure/azure-monitor/overview) - 1h
+
+### 📊 Monitoring et observabilité
+
+**Apprendre à surveiller votre infrastructure** :
+- [Kusto Query Language (KQL) Tutorial](https://docs.microsoft.com/azure/data-explorer/kusto/query/tutorial) - 1h
+- [Log Analytics Workspace Setup](https://docs.microsoft.com/azure/azure-monitor/logs/log-analytics-overview) - 30 min
+- [Azure Monitor Alerts](https://docs.microsoft.com/azure/azure-monitor/alerts/alerts-overview) - 30 min
+- [Metrics vs Logs vs Traces](https://www.youtube.com/watch?v=VrmKLUllpXI) - 15 min
+
+### 🎓 Cours complets sur Azure (recommandés)
+
+**Pour approfondir Azure dans son intégralité** :
+- [AZ-900 Azure Fundamentals](https://www.youtube.com/watch?v=NKEFrLneBuw) - 4h (certification)
+- [AZ-104 Azure Administrator](https://docs.microsoft.com/learn/paths/az-104-administrator/) - 20h (certification)
+- [AZ-305 Azure Solutions Architect](https://docs.microsoft.com/learn/paths/az-305-design-identity-governance/) - 30h (certification)
+
+### 💡 Hands-On Labs
+
+**Pratiquer directement sur Azure** :
+- [Microsoft Learn - Free Azure Labs](https://docs.microsoft.com/learn/browse/)
+- [Azure Quick Start Templates](https://github.com/Azure/azure-quickstart-templates)
+- [Terraform Registry - Community Modules](https://registry.terraform.io/browse/modules)
+- [CloudResume Challenge](https://cloudresumechallenge.dev/) - Projet personnel stimulant
+
+### 🤝 Communautés et forums
+
+**Trouver de l'aide et apprendre des autres** :
+- [Stack Overflow - Azure Tag](https://stackoverflow.com/questions/tagged/azure)
+- [Microsoft Q&A - Azure](https://docs.microsoft.com/answers/topics/azure.html)
+- [Reddit - r/azure](https://www.reddit.com/r/azure/)
+- [Terraform Community Forum](https://discuss.hashicorp.com/c/terraform/azure/4)
+- [Discord - Cloud Native Community](https://www.cncf.io/blog/2020/01/07/kubernetes-community-discord/)
+
+### 📖 Livres recommandés
+
+**Approfondissement hors ligne** :
+- "Terraform in Action" par Scott Winkler
+- "The Phoenix Project" - DevOps & Infrastructure
+- "Cloud Security" par Packt Publishing
+- "Kubernetes in Action" (pour après ce projet)
+
+### ✍️ Projet personnalisé - Défis d'apprentissage
+
+**Une fois à l'aise avec ce projet, essayez** :
+1. **Défi 1** : Ajouter un 3e Spoke sans regarder les solutions
+2. **Défi 2** : Mettre en place un backend Terraform distant automatisé
+3. **Défi 3** : Créer un module Terraform réutilisable pour déployer un Spoke
+4. **Défi 4** : Écrire un test Terratest pour valider votre infrastructure
+5. **Défi 5** : Documenter l'infrastructure avec un diagramme automatisé
 
 ---
 
