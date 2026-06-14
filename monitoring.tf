@@ -16,6 +16,7 @@ resource "azurerm_monitor_action_group" "security" {
 }
 
 # Alerte 1 : Volume de refus Firewall élevé (tentative d'intrusion)
+# FIX : AzureDiagnostics + msg_s remplacé par AZFWNetworkRule + Action
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "fw_high_denials" {
   name                 = local.alert_fw_denial_name
   resource_group_name  = azurerm_resource_group.main.name
@@ -29,20 +30,20 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "fw_high_denials" {
   description          = "Alerte si le Firewall refuse plus de ${var.fw_denial_threshold} connexions en 5 minutes"
 
   criteria {
-      query = <<-QUERY
-        AZFWNetworkRule
-        | where Action == "Deny"
-        | summarize DenialCount = count() by bin(TimeGenerated, 5m)
-        | where DenialCount > ${var.fw_denial_threshold}
-      QUERY
-      time_aggregation_method = "Count"
-      threshold               = 0
-      operator                = "GreaterThan"
-      failing_periods {
-        minimum_failing_periods_to_trigger_alert = 1
-        number_of_evaluation_periods             = 1
-      }
+    query = <<-QUERY
+      AZFWNetworkRule
+      | where Action == "Deny"
+      | summarize DenialCount = count() by bin(TimeGenerated, 5m)
+      | where DenialCount > ${var.fw_denial_threshold}
+    QUERY
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
     }
+  }
 
   action { action_groups = [azurerm_monitor_action_group.security.id] }
 }
