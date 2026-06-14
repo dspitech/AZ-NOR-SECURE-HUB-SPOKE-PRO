@@ -221,37 +221,7 @@ Chaque environnement utilise une plage d'adresses IP entierement separee. Cette 
 
 ### Topologie reseau
 
-```
-                         INTERNET
-                             |
-                    [IP Publique Firewall]
-                             |
-         +-------------------+-------------------+
-         |           HUB VNet 10.0.0.0/16        |
-         |                                       |
-         |  [AzureFirewallSubnet 10.0.1.0/24]   |
-         |       Azure Firewall 10.0.1.4         |
-         |                                       |
-         |  [AzureBastionSubnet 10.0.2.0/24]    |
-         |       Azure Bastion                   |
-         |                                       |
-         |  [Log Analytics Workspace]            |
-         +--------+---------+--------------------+
-                  |         |
-          Peering |         | Peering
-           Hub<->Prod  Hub<->NonProd
-                  |         |
-    +-------------+     +---+-------------+
-    | Spoke PROD        | Spoke NON-PROD  |
-    | 192.168.0.0/16    | 172.16.0.0/12   |
-    |                   |                 |
-    | snet-prod-resources   snet-nonprod-resources
-    | 192.168.1.0/24    | 172.16.1.0/24   |
-    | NSG strict        | NSG modere      |
-    | VM prod (B1s)     | VM nonprod (B1s)|
-    | UDR -> Firewall   | UDR -> Firewall |
-    +-------------------+-----------------+
-```
+![Architecture](./Topologie_Reseau.jpg)
 
 ### Flux 1 : Communication entre Spokes (Prod vers NonProd)
 
