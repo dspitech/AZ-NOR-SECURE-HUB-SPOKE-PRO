@@ -817,9 +817,8 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "fw_high_denials" {
 
   criteria {
     query = <<-QUERY
-      AzureDiagnostics
-      | where Category == "AzureFirewallNetworkRule"
-      | where msg_s contains "Deny"
+      AZFWNetworkRule
+      | where Action == "Deny"
       | summarize DenialCount = count() by bin(TimeGenerated, 5m)
       | where DenialCount > ${var.fw_denial_threshold}
     QUERY
