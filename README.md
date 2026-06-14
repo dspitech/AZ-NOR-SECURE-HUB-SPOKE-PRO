@@ -429,9 +429,13 @@ provider "azurerm" {
 **Bootstrap du backend distant** (a executer une seule fois avant `terraform init`) :
 ```bash
 az group create --name rg-terraform-state-norway --location norwayeast
-az storage account create --name sttfstatenorway001 \
-  --resource-group rg-terraform-state-norway --location norwayeast \
-  --sku Standard_LRS --allow-blob-public-access false
+
+az storage account create --name sttfstatenorway001 `
+  --resource-group rg-terraform-state-norway `
+  --location norwayeast `
+  --sku Standard_LRS `
+  --allow-blob-public-access false
+
 az storage container create --name tfstate --account-name sttfstatenorway001
 ```
 
