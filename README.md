@@ -1,7 +1,21 @@
 # AZ-NOR-SECURE-HUB-SPOKE
 
-Architecture Hub-and-Spoke securisee avec inspection de flux centralisee  
-Version 2.1 — Terraform · NSG · Azure Monitor · CI/CD GitHub Actions
+<div align="center">
+
+![Azure](https://img.shields.io/badge/Azure-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
+![Infrastructure as Code](https://img.shields.io/badge/IaC-Infrastructure%20as%20Code-blue?style=for-the-badge)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![Security](https://img.shields.io/badge/Security-Checkov_Scan-brightgreen?style=for-the-badge)
+
+**Architecture Hub-and-Spoke sécurisée avec inspection de flux centralisée**
+
+*Version 2.1 - Terraform · NSG · Monitoring · CI/CD*
+
+[Architecture](#-architecture) • [Composants](#-composants) • [Déploiement](#-déploiement) • [Sécurité](#-sécurité) • [CI/CD](#-cicd-github-actions)
+
+
+</div>
 
 ---
 
@@ -67,7 +81,7 @@ Avantages principaux :
 ### 2.2 Les trois environnements de ce projet
 
 ```
-HUB (Coeur du reseau) — 10.0.0.0/16
+HUB (Coeur du reseau) - 10.0.0.0/16
   Azure Firewall : inspecte tout le trafic
   Azure Bastion : acces SSH/RDP securise sans IP publique
   Log Analytics : centralisation des journaux
@@ -87,10 +101,10 @@ La defense en profondeur est une strategie de securite qui consiste a empiler pl
 Couche 1 : Azure Firewall (L4 et L7)
   Inspecte chaque paquet, bloque les menaces connues
 
-Couche 2 : UDR — Routage force
+Couche 2 : UDR - Routage force
   Rend impossible tout contournement du Firewall
 
-Couche 3 : NSG — Network Security Groups
+Couche 3 : NSG - Network Security Groups
   Filtrage secondaire directement attache a chaque subnet
 
 Couche 4 : VMs sans adresse IP publique
@@ -153,7 +167,7 @@ Chaque environnement utilise une plage d'adresses IP entierement separee. Cette 
 
 ### I
 
-**IaC — Infrastructure as Code** : Pratique consistant a definir et gerer l'infrastructure (serveurs, reseaux, bases de donnees) sous forme de fichiers de code, plutot qu'en cliquant dans une interface graphique. L'IaC permet la reproductibilite, la versionnabilite et l'automatisation.
+**IaC - Infrastructure as Code** : Pratique consistant a definir et gerer l'infrastructure (serveurs, reseaux, bases de donnees) sous forme de fichiers de code, plutot qu'en cliquant dans une interface graphique. L'IaC permet la reproductibilite, la versionnabilite et l'automatisation.
 
 **IP privee** : Adresse IP non routable sur Internet (plages 10.x.x.x, 172.16.x.x, 192.168.x.x). Utilisee pour la communication interne entre ressources dans un reseau prive.
 
@@ -161,13 +175,13 @@ Chaque environnement utilise une plage d'adresses IP entierement separee. Cette 
 
 ### K
 
-**KQL — Kusto Query Language** : Langage de requete utilise dans Azure Monitor et Log Analytics pour interroger les journaux et metriques. Syntaxe similaire a SQL mais orientee flux de donnees et series temporelles.
+**KQL - Kusto Query Language** : Langage de requete utilise dans Azure Monitor et Log Analytics pour interroger les journaux et metriques. Syntaxe similaire a SQL mais orientee flux de donnees et series temporelles.
 
 ### N
 
-**NIC — Network Interface Card** : Interface reseau virtuelle associee a une VM. C'est a elle que sont attaches l'adresse IP privee et le NSG au niveau de l'interface.
+**NIC - Network Interface Card** : Interface reseau virtuelle associee a une VM. C'est a elle que sont attaches l'adresse IP privee et le NSG au niveau de l'interface.
 
-**NSG — Network Security Group** : Ensemble de regles de filtrage reseau applique a un subnet ou une interface reseau. Chaque regle definit une action (Allow ou Deny) pour une combinaison source/destination/port/protocole. Les regles sont evaluees par ordre de priorite croissant (100 avant 200, etc.).
+**NSG - Network Security Group** : Ensemble de regles de filtrage reseau applique a un subnet ou une interface reseau. Chaque regle definit une action (Allow ou Deny) pour une combinaison source/destination/port/protocole. Les regles sont evaluees par ordre de priorite croissant (100 avant 200, etc.).
 
 ### P
 
@@ -179,7 +193,7 @@ Chaque environnement utilise une plage d'adresses IP entierement separee. Cette 
 
 **Resource Group** : Conteneur logique Azure regroupant toutes les ressources d'un projet. Permet de les gerer, surveiller et facturer ensemble. La suppression du Resource Group supprime toutes les ressources qu'il contient.
 
-**Route Table — UDR (User Defined Route)** : Table de routage personnalisee qui remplace ou complete le routage par defaut d'Azure. Dans ce projet, une UDR force tout le trafic sortant des Spokes vers le Firewall, rendant impossible de le contourner.
+**Route Table - UDR (User Defined Route)** : Table de routage personnalisee qui remplace ou complete le routage par defaut d'Azure. Dans ce projet, une UDR force tout le trafic sortant des Spokes vers le Firewall, rendant impossible de le contourner.
 
 ### S
 
@@ -197,9 +211,9 @@ Chaque environnement utilise une plage d'adresses IP entierement separee. Cette 
 
 ### V
 
-**VNet — Virtual Network** : Reseau prive isole dans Azure, equivalent du VPC (Virtual Private Cloud) dans AWS. Un VNet contient des subnets et peut etre connecte a d'autres VNets via le peering.
+**VNet - Virtual Network** : Reseau prive isole dans Azure, equivalent du VPC (Virtual Private Cloud) dans AWS. Un VNet contient des subnets et peut etre connecte a d'autres VNets via le peering.
 
-**VM — Virtual Machine** : Ordinateur virtuel executant un systeme d'exploitation complet (Linux ou Windows), heberge sur l'infrastructure physique de Microsoft.
+**VM - Virtual Machine** : Ordinateur virtuel executant un systeme d'exploitation complet (Linux ou Windows), heberge sur l'infrastructure physique de Microsoft.
 
 ---
 
@@ -297,7 +311,7 @@ Resultat : CONNEXION REFUSEE. La VM nonprod ne recoit meme pas le paquet.
 | Hub VNet | vnet-az-nor-hub-core | 10.0.0.0/16 |
 | Spoke Prod VNet | vnet-az-nor-spoke-prod | 192.168.0.0/16 |
 | Spoke NonProd VNet | vnet-az-nor-spoke-nonprod | 172.16.0.0/12 |
-| Azure Firewall | fw-az-nor-hub-central | IP privee 10.0.1.4 — SKU Standard |
+| Azure Firewall | fw-az-nor-hub-central | IP privee 10.0.1.4 - SKU Standard |
 | Firewall Policy | fw-policy-az-nor-global | Regle Allow inter-spoke |
 | Azure Bastion | bastion-az-nor-hub | SKU Standard |
 | NSG Production | nsg-prod-resources | Filtrage L4 subnet prod |
@@ -325,15 +339,15 @@ Resultat : CONNEXION REFUSEE. La VM nonprod ne recoit meme pas le paquet.
 | Couche | Nom de la regle | Source | Destination | Protocole/Port | Action |
 |--------|----------------|--------|-------------|---------------|--------|
 | Firewall | Allow-Spoke-to-Spoke | 192.168.0.0/16 et 172.16.0.0/12 | 192.168.0.0/16 et 172.16.0.0/12 | Tous | Allow |
-| NSG Prod — Entrant | Allow-SSH-From-Bastion | 10.0.2.0/24 | 192.168.1.0/24 — port 22 | TCP | Allow |
-| NSG Prod — Entrant | Allow-Internal-From-Nonprod | 172.16.0.0/12 | 192.168.1.0/24 | Tous | Allow |
-| NSG Prod — Entrant | Deny-All-Inbound | Tous | Tous | Tous | Deny |
-| NSG Prod — Sortant | Allow-Outbound-To-Nonprod | 192.168.1.0/24 | 172.16.0.0/12 | Tous | Allow |
-| NSG Prod — Sortant | Deny-All-Outbound | Tous | Tous | Tous | Deny |
-| NSG NonProd — Entrant | Allow-SSH-From-Bastion | 10.0.2.0/24 | 172.16.1.0/24 — port 22 | TCP | Allow |
-| NSG NonProd — Entrant | Allow-HTTP-HTTPS | 192.168.0.0/16 | 172.16.1.0/24 — ports 80/443 | TCP | Allow |
-| NSG NonProd — Entrant | Deny-All-Inbound | Tous | Tous | Tous | Deny |
-| NSG NonProd — Sortant | Deny-All-Outbound | Tous | Tous | Tous | Deny |
+| NSG Prod - Entrant | Allow-SSH-From-Bastion | 10.0.2.0/24 | 192.168.1.0/24 - port 22 | TCP | Allow |
+| NSG Prod - Entrant | Allow-Internal-From-Nonprod | 172.16.0.0/12 | 192.168.1.0/24 | Tous | Allow |
+| NSG Prod - Entrant | Deny-All-Inbound | Tous | Tous | Tous | Deny |
+| NSG Prod - Sortant | Allow-Outbound-To-Nonprod | 192.168.1.0/24 | 172.16.0.0/12 | Tous | Allow |
+| NSG Prod - Sortant | Deny-All-Outbound | Tous | Tous | Tous | Deny |
+| NSG NonProd - Entrant | Allow-SSH-From-Bastion | 10.0.2.0/24 | 172.16.1.0/24 - port 22 | TCP | Allow |
+| NSG NonProd - Entrant | Allow-HTTP-HTTPS | 192.168.0.0/16 | 172.16.1.0/24 - ports 80/443 | TCP | Allow |
+| NSG NonProd - Entrant | Deny-All-Inbound | Tous | Tous | Tous | Deny |
+| NSG NonProd - Sortant | Deny-All-Outbound | Tous | Tous | Tous | Deny |
 
 ---
 
@@ -997,7 +1011,7 @@ resource "azurerm_monitor_diagnostic_setting" "nsg_nonprod" {
 
 `Deny-All-Inbound` a la priorite 4096 : C'est une "regle de base" ou "default deny". Tout trafic qui n'a correspond a aucune regle Allow precedente est bloque. Azure applique egalement ses propres regles par defaut (nommees 65000, 65001, 65500), mais les positionner a 4096 garantit que les regles explicites sont toujours evaluees en premier.
 
-`azurerm_subnet_network_security_group_association` : Creer un NSG ne suffit pas — il faut l'associer explicitement au subnet. Sans ce bloc d'association, le NSG existe dans Azure mais n'est applique a aucune interface reseau et n'a aucun effet.
+`azurerm_subnet_network_security_group_association` : Creer un NSG ne suffit pas - il faut l'associer explicitement au subnet. Sans ce bloc d'association, le NSG existe dans Azure mais n'est applique a aucune interface reseau et n'a aucun effet.
 
 `NetworkSecurityGroupEvent` vs `NetworkSecurityGroupRuleCounter` : Le premier log enregistre chaque evenement (connexion acceptee ou refusee), le second comptabilise le nombre de fois que chaque regle a ete evaluee sur une periode. Les deux sont complementaires pour le diagnostic et la conformite.
 
@@ -1530,10 +1544,10 @@ Puis sur GitHub : Actions > Terraform CI/CD > job Apply > Review deployments > A
 
 | Alerte | Condition de declenchement | Severite |
 |--------|--------------------------|---------|
-| alert-fw-high-denials | Plus de 100 refus Firewall en 5 minutes | 2 — Warning |
-| alert-fw-health | Disponibilite Firewall inferieure a 95% | 1 — Error |
-| alert-cpu-vm-prod | CPU vm-prod-01 superieur a 85% sur 5 minutes | 2 — Warning |
-| alert-cpu-vm-nonprod | CPU vm-nonprod-01 superieur a 85% sur 5 minutes | 2 — Warning |
+| alert-fw-high-denials | Plus de 100 refus Firewall en 5 minutes | 2 - Warning |
+| alert-fw-health | Disponibilite Firewall inferieure a 95% | 1 - Error |
+| alert-cpu-vm-prod | CPU vm-prod-01 superieur a 85% sur 5 minutes | 2 - Warning |
+| alert-cpu-vm-nonprod | CPU vm-nonprod-01 superieur a 85% sur 5 minutes | 2 - Warning |
 
 ### Requetes KQL utiles
 
@@ -1576,8 +1590,8 @@ AzureDiagnostics
 | Azure Bastion | Standard | ~140 USD | ~4.70 USD |
 | Log Analytics | PerGB2018 | ~2.30 USD/Go | variable |
 | VMs (x2) | Standard_B1s | ~15 USD | ~0.50 USD |
-| VNets et Peerings | — | Gratuit | — |
-| Storage tfstate | LRS | ~0.05 USD | — |
+| VNets et Peerings | - | Gratuit | - |
+| Storage tfstate | LRS | ~0.05 USD | - |
 
 Total estime : 1 405 a 1 500 USD par mois hors trafic sortant.
 
@@ -1809,7 +1823,7 @@ Verifier si `timestamp()` est utilise dans `locals.tf`. Remplacer par une date f
 
 ### Reseaux et cloud
 
-- Azure Fundamentals — Microsoft Learn : https://docs.microsoft.com/learn/paths/az-900-describe-cloud-concepts/
+- Azure Fundamentals - Microsoft Learn : https://docs.microsoft.com/learn/paths/az-900-describe-cloud-concepts/
 - CIDR Notation et subnetting : https://www.youtube.com/watch?v=z07HTSzzp3o
 - Modele OSI explique : https://en.wikipedia.org/wiki/OSI_model
 
@@ -1825,8 +1839,8 @@ Verifier si `timestamp()` est utilise dans `locals.tf`. Remplacer par une date f
 
 ### Terraform
 
-- Terraform Fundamentals — HashiCorp Learn : https://learn.hashicorp.com/collections/terraform/aws-get-started
-- Provider azurerm — documentation officielle : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
+- Terraform Fundamentals - HashiCorp Learn : https://learn.hashicorp.com/collections/terraform/aws-get-started
+- Provider azurerm - documentation officielle : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
 - Terraform Best Practices : https://www.terraform.io/docs/cloud/guides/recommended-practices.html
 
 ### Monitoring et KQL
@@ -1854,4 +1868,4 @@ Verifier si `timestamp()` est utilise dans `locals.tf`. Remplacer par une date f
 
 ---
 
-*Version 2.1 — Terraform >= 1.5.0 — Provider azurerm ~> 3.100 — Region Norway East*
+*Version 2.1 - Terraform >= 1.5.0 - Provider azurerm ~> 3.100 - Region Norway East*
