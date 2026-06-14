@@ -22,9 +22,9 @@
 
 ## Table des matières
 
-- [Pour les étudiants](#-pour-les-étudiants) ⭐ **COMMENCER ICI**
+- [Pour les étudiants](#-pour-les-étudiants)  **COMMENCER ICI**
 - [Concepts fondamentaux](#-concepts-fondamentaux)
-- [Glossaire technique](#-glossaire-technique)
+- [Glossaire technique](#-concept-technique)
 - [Guide d'apprentissage progressif](#-guide-dapprentissage-progressif)
 - [Vue d'ensemble](#-vue-densemble)
 - [Avantages stratégiques](#-avantages-stratégiques)
@@ -59,11 +59,11 @@
 
 ---
 
-## 🎓 Pour les étudiants
+##  Pour les étudiants
 
 Bienvenue ! Ce projet est conçu pour vous enseigner les architectures réseau cloud modernes.
 
-### 📚 Avant de commencer
+###  Avant de commencer
 
 **Si vous êtes nouveau dans le cloud**, lisez dans cet ordre :
 1. **D'abord** : [Concepts fondamentaux](#-concepts-fondamentaux)
@@ -71,7 +71,7 @@ Bienvenue ! Ce projet est conçu pour vous enseigner les architectures réseau c
 3. **Ensuite** : [Guide d'apprentissage progressif](#-guide-dapprentissage-progressif)
 4. **Enfin** : Explorez le [Code source Terraform](#-code-source-terraform)
 
-### 🚀 Parcours d'apprentissage recommandé
+###  Parcours d'apprentissage recommandé
 
 | Étape | Durée | Qu'apprenez-vous ? |
 |-------|-------|-------------------|
@@ -83,9 +83,9 @@ Bienvenue ! Ce projet est conçu pour vous enseigner les architectures réseau c
 
 ---
 
-## 🏗️ Concepts fondamentaux
+##  Concepts fondamentaux
 
-### 1️⃣ Qu'est-ce qu'une Architecture Hub-and-Spoke ?
+### 1 -  Qu'est-ce qu'une Architecture Hub-and-Spoke ?
 
 **Définition simple** :
 - **Hub** = Centre de contrôle, point de passage obligatoire
@@ -104,11 +104,11 @@ De la même façon, tout le trafic réseau passe par le Firewall du Hub.
 ```
 
 **Avantages pour la sécurité** :
-- ✅ **Inspection centralisée** : Un seul endroit à surveiller
-- ✅ **Contrôle granulaire** : Règles appliquées une seule fois, valables pour tous
-- ✅ **Isolation** : Les Spokes ne communiquent jamais directement
+-  **Inspection centralisée** : Un seul endroit à surveiller
+-  **Contrôle granulaire** : Règles appliquées une seule fois, valables pour tous
+-  **Isolation** : Les Spokes ne communiquent jamais directement
 
-### 2️⃣ Les trois environnements du projet
+### 2️ - Les trois environnements du projet
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -127,7 +127,7 @@ De la même façon, tout le trafic réseau passe par le Firewall du Hub.
     └─ Haute sécurité                    └─ NSG modéré
 ```
 
-### 3️⃣ Défense en profondeur : Les 5 couches de sécurité
+### 3️ - Défense en profondeur : Les 5 couches de sécurité
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -150,7 +150,7 @@ De la même façon, tout le trafic réseau passe par le Firewall du Hub.
 
 **Pourquoi 5 couches ?** → Si une couche est contournée, les autres restent actives !
 
-### 4️⃣ Segmentation des réseaux
+### 4️ - Segmentation des réseaux
 
 **Concept clé** : Les trois environnements utilisent des **plages d'adresses IP entièrement différentes** :
 
@@ -162,7 +162,7 @@ De la même façon, tout le trafic réseau passe par le Firewall du Hub.
 
 **Bénéfice** : Un hacker qui accède à non-prod ne peut **physiquement pas** accéder à prod.
 
-### 5️⃣ Le cycle d'une requête réseau
+### 5️ - Le cycle d'une requête réseau
 
 ```
 VM Production (192.168.1.4) envoie données à VM Non-Prod (172.16.1.4)
@@ -186,7 +186,7 @@ VM Production (192.168.1.4) envoie données à VM Non-Prod (172.16.1.4)
 
 ---
 
-## 📖 Glossaire technique
+## Concetps techniques
 
 ### A
 - **Azure Bastion** : Service de passerelle sécurisée pour accéder aux VMs sans IP publique. RDP/SSH chiffré.
@@ -240,9 +240,9 @@ VM Production (192.168.1.4) envoie données à VM Non-Prod (172.16.1.4)
 
 ---
 
-## 📚 Guide d'apprentissage progressif
+##  Guide d'apprentissage progressif
 
-### **Niveau 1 : Débutant complet** ⭐ (1-2h)
+### **Niveau 1 : Débutant complet**  (1-2h)
 
 **Objectif** : Déployer le projet et comprendre les bases
 
@@ -269,7 +269,7 @@ VM Production (192.168.1.4) envoie données à VM Non-Prod (172.16.1.4)
    - Notez les IPs publiques
    - Accédez à Bastion via le portail Azure
 
-### **Niveau 2 : Intermédiaire** ⭐⭐ (3-5h)
+### **Niveau 2 : Intermédiaire**  (3-5h)
 
 **Objectif** : Comprendre le code Terraform
 
@@ -295,7 +295,7 @@ VM Production (192.168.1.4) envoie données à VM Non-Prod (172.16.1.4)
 4. **Lire [Sécurité](#-sécurité)** (15 min)
    - Focus : Les 5 couches
 
-### **Niveau 3 : Avancé** ⭐⭐⭐ (6-10h)
+### **Niveau 3 : Avancé**  (6-10h)
 
 **Objectif** : Maîtriser et étendre l'architecture
 
@@ -326,8 +326,6 @@ VM Production (192.168.1.4) envoie données à VM Non-Prod (172.16.1.4)
 
 ---
 
----
-
 ## Vue d'ensemble
 
 Ce projet implémente une architecture réseau **Hub-and-Spoke** sécurisée sur Microsoft Azure, déployée via **Terraform**, pour la région **Norway East**. L'architecture garantit une inspection centralisée de tout le trafic réseau via Azure Firewall, une segmentation claire entre les environnements de production et non-production, un monitoring complet avec alertes, et un pipeline CI/CD automatisé.
@@ -347,9 +345,9 @@ Ce projet implémente une architecture réseau **Hub-and-Spoke** sécurisée sur
 
 ---
 
-## 🔄 Architecture expliquée - Le flux du trafic réseau
+##  Architecture expliquée - Le flux du trafic réseau
 
-### Flux 1️⃣ : Une VM Production veut communiquer avec une VM Non-Production
+### Flux 1️ - : Une VM Production veut communiquer avec une VM Non-Production
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -383,7 +381,7 @@ Ce projet implémente une architecture réseau **Hub-and-Spoke** sécurisée sur
     └─ Si DENY : Paquet ignoré
 ```
 
-### Flux 2️⃣ : Accès administrateur sécurisé via Azure Bastion
+### Flux 2️ - : Accès administrateur sécurisé via Azure Bastion
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -413,7 +411,7 @@ Ce projet implémente une architecture réseau **Hub-and-Spoke** sécurisée sur
     └─ Journalisée dans Log Analytics
 ```
 
-### Flux 3️⃣ : Tentative d'accès non autorisée (exemple : SSH de Prod à Non-Prod)
+### Flux 3️ - : Tentative d'accès non autorisée (exemple : SSH de Prod à Non-Prod)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -509,18 +507,18 @@ Logs NSG + Firewall centralisés dans Log Analytics. Prêt pour ISO 27001, RGPD,
 | Environnement | Plage | Subnet ressources | NSG |
 |--------------|-------|-------------------|-----|
 | **Hub** | `10.0.0.0/16` | FW: `10.0.1.0/24` · Bastion: `10.0.2.0/24` | — |
-| **Production** | `192.168.0.0/16` | `192.168.1.0/24` | ✅ `nsg-prod-resources` |
-| **Non-Production** | `172.16.0.0/12` | `172.16.1.0/24` | ✅ `nsg-nonprod-resources` |
+| **Production** | `192.168.0.0/16` | `192.168.1.0/24` |  `nsg-prod-resources` |
+| **Non-Production** | `172.16.0.0/12` | `172.16.1.0/24` |  `nsg-nonprod-resources` |
 
 ### Règles de sécurité
 
 | Couche | Règle | Source | Destination | Action |
 |--------|-------|--------|-------------|--------|
-| **Firewall** | Allow-Spoke-to-Spoke | `192.168.0.0/16` `172.16.0.0/12` | `192.168.0.0/16` `172.16.0.0/12` | ✅ Allow |
-| **NSG Prod** | Allow-SSH-From-Bastion | `10.0.2.0/24` | `192.168.1.0/24`:22 | ✅ Allow |
-| **NSG Prod** | Deny-All-Inbound | `*` | `*` | 🔴 Deny |
-| **NSG Non-Prod** | Allow-SSH-From-Bastion | `10.0.2.0/24` | `172.16.1.0/24`:22 | ✅ Allow |
-| **NSG Non-Prod** | Allow-HTTP-HTTPS | `192.168.0.0/16` | `172.16.1.0/24`:80,443 | ✅ Allow |
+| **Firewall** | Allow-Spoke-to-Spoke | `192.168.0.0/16` `172.16.0.0/12` | `192.168.0.0/16` `172.16.0.0/12` |  Allow |
+| **NSG Prod** | Allow-SSH-From-Bastion | `10.0.2.0/24` | `192.168.1.0/24`:22 |  Allow |
+| **NSG Prod** | Deny-All-Inbound | `*` | `*` |  Deny |
+| **NSG Non-Prod** | Allow-SSH-From-Bastion | `10.0.2.0/24` | `172.16.1.0/24`:22 |  Allow |
+| **NSG Non-Prod** | Allow-HTTP-HTTPS | `192.168.0.0/16` | `172.16.1.0/24`:80,443 |  Allow |
 
 ---
 
