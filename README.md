@@ -1,14 +1,14 @@
-# 🔐 AZ-NOR-SECURE-HUB-SPOKE
+# AZ-NOR-SECURE-HUB-SPOKE
 
 <div align="center">
 
 ![Azure](https://img.shields.io/badge/Azure-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)
-![Bicep](https://img.shields.io/badge/Bicep-0075D6?style=for-the-badge&logo=azure-devops&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
 ![Infrastructure as Code](https://img.shields.io/badge/IaC-Infrastructure%20as%20Code-blue?style=for-the-badge)
 
 **Architecture Hub-and-Spoke sécurisée avec inspection de flux centralisée**
 
-*Version 1.1 - Monitoring & IP Segmentation Active*
+*Version 2.0 — Migration Bicep → Terraform*
 
 [Architecture](#-architecture) • [Composants](#-composants) • [Déploiement](#-déploiement) • [Sécurité](#-sécurité)
 
@@ -16,158 +16,157 @@
 
 ---
 
-## 📋 Table des matières
+## Table des matières
 
 - [Vue d'ensemble](#-vue-densemble)
 - [Avantages stratégiques](#-avantages-stratégiques)
 - [Architecture](#-architecture)
 - [Composants](#-composants)
 - [Segmentation réseau](#-segmentation-réseau)
-- [Cas d'usage](#-cas-dusage)
+- [Structure du projet](#-structure-du-projet)
+- [Code source Terraform](#-code-source-terraform)
+  - [main.tf](#-maintf)
+  - [network.tf](#-networktf)
+  - [variables.tf](#-variablestf)
+  - [outputs.tf](#-outputstf)
+  - [terraform.tfvars.example](#-terraformtfvarsexample)
 - [Prérequis](#-prérequis)
 - [Déploiement](#-déploiement)
 - [Sécurité](#-sécurité)
 - [Monitoring](#-monitoring)
-- [Configuration](#-configuration)
 - [Bonnes pratiques](#-bonnes-pratiques)
 - [Dépannage](#-dépannage)
 - [FAQ](#-faq)
 - [Coûts estimés](#-coûts-estimés)
 - [Évolutions futures](#-évolutions-futures)
-- [Support](#-support)
 
 ---
 
-## 🎯 Vue d'ensemble
+## Vue d'ensemble
 
-Ce projet implémente une architecture réseau **Hub-and-Spoke** sécurisée sur Microsoft Azure, conçue pour la région **Norway East**. L'architecture garantit une inspection centralisée de tout le trafic réseau via Azure Firewall, une segmentation claire entre les environnements de production et non-production, et un monitoring complet des flux réseau.
+Ce projet implémente une architecture réseau **Hub-and-Spoke** sécurisée sur Microsoft Azure, déployée via **Terraform**, conçue pour la région **Norway East**. L'architecture garantit une inspection centralisée de tout le trafic réseau via Azure Firewall, une segmentation claire entre les environnements de production et non-production, et un monitoring complet des flux réseau.
 
-### ✨ Caractéristiques principales
+### Caractéristiques principales
 
-- 🔒 **Inspection centralisée** : Tout le trafic passe par Azure Firewall
-- 🌐 **Segmentation réseau** : Isolation complète entre Production et Non-Production
-- 📊 **Monitoring intégré** : Log Analytics Workspace pour l'analyse des logs de sécurité
-- 🛡️ **Accès sécurisé** : Azure Bastion pour l'accès aux machines virtuelles
-- 🚦 **Routage forcé** : User Defined Routes (UDR) pour garantir le passage par le Firewall
-- 🔄 **Peering bidirectionnel** : Communication sécurisée entre Hub et Spokes
+- **Inspection centralisée** : Tout le trafic passe par Azure Firewall
+- **Segmentation réseau** : Isolation complète entre Production et Non-Production
+- **Monitoring intégré** : Log Analytics Workspace pour l'analyse des logs de sécurité
+- **Accès sécurisé** : Azure Bastion pour l'accès aux machines virtuelles
+- **Routage forcé** : User Defined Routes (UDR) pour garantir le passage par le Firewall
+- **Peering bidirectionnel** : Communication sécurisée entre Hub et Spokes
+- **Infrastructure as Code** : Entièrement déployable et reproductible via Terraform
 
 ---
 
-## 💎 Avantages stratégiques
+## Avantages stratégiques
 
-L'avantage de ce projet, baptisé **AZ-NOR-SECURE-HUB-SPOKE**, réside dans sa capacité à transformer une infrastructure cloud classique en une architecture de classe entreprise répondant aux exigences de sécurité et de conformité modernes.
-
-### 🛡️ 1. Sécurité Périmétrique et Inspection Centrale
+### 1. Sécurité Périmétrique et Inspection Centrale
 
 L'avantage majeur est l'utilisation d'un **Azure Firewall au centre du réseau** (le "Hub").
 
-- **Inspection des flux** : Contrairement à un réseau simple où les ressources communiquent librement, ici, chaque paquet de données entre la Production (`192.168.x.x`) et la Non-Production (`172.16.x.x`) est analysé.
-- **Blocage par défaut** : Le pare-feu applique une politique **"Zero Trust"**. Rien ne passe à moins d'une règle explicite (comme celle que nous avons créée pour le Ping/SSH).
+- **Inspection des flux** : Chaque paquet entre Production (`192.168.x.x`) et Non-Production (`172.16.x.x`) est analysé.
+- **Blocage par défaut** : Politique **"Zero Trust"** — rien ne passe sans règle explicite.
 
-### 🔐 2. Isolation Stricte des Environnements (Segmentation)
+### 2. Isolation Stricte des Environnements
 
-En utilisant des plages IP distinctes et des VNets séparés, vous éliminez les risques de **"mouvement latéral"** :
+Grâce aux plages IP distinctes et aux VNets séparés :
 
-- **Étanchéité** : Une erreur de configuration en environnement Non-Prod ne peut pas affecter la Production grâce à l'isolation physique des réseaux.
-- **Standardisation** : L'adressage en `192.168.x.x` et `172.16.x.x` permet une gestion d'inventaire claire et professionnelle.
+- **Étanchéité** : Une erreur en Non-Prod ne peut pas contaminer la Production.
+- **Standardisation** : Adressage `192.168.x.x` / `172.16.x.x` pour un inventaire clair.
 
-### 🚦 3. Maîtrise Totale du Trafic (UDR)
+### 3. Maîtrise Totale du Trafic (UDR)
 
-Grâce aux **Tables de Routage (UDR)**, l'entreprise garde le contrôle sur la sortie des données :
+- **Anti-Exfiltration** : Tout transit vers Internet passe obligatoirement par le Firewall.
 
-- **Anti-Exfiltration** : Les serveurs ne peuvent pas envoyer de données vers Internet de manière autonome ; tout doit transiter par le Firewall qui agit comme une passerelle unique et surveillée.
+### 4. Auditabilité et Conformité (Log Analytics)
 
-### 📋 4. Auditabilité et Conformité (Log Analytics)
+- **Preuve de conformité** : Preuves exploitables pour ISO 27001, RGPD et SOC 2.
 
-Le projet intègre nativement le monitoring avec **Log Analytics**.
+### 5. Réduction de la Surface d'Attaque (Bastion)
 
-- **Preuve de conformité** : En cas d'audit (ISO 27001, RGPD), vous pouvez prouver qui a accédé à quelle ressource et quand, grâce aux journaux d'activité du Firewall activés dans le fichier Bicep.
+- **Accès sécurisé** : Connexion SSL via le portail Azure, sans exposer d'IP publiques sur les VMs.
 
-### 🔒 5. Réduction de la Surface d'Attaque (Bastion)
-
-L'utilisation d'**Azure Bastion** supprime le besoin d'exposer des adresses IP publiques sur vos machines virtuelles.
-
-- **Accès sécurisé** : Les administrateurs se connectent via SSL (HTTPS) directement depuis le portail Azure, rendant vos serveurs invisibles pour les scanners de vulnérabilités sur Internet.
-
-### 📊 Résumé des avantages pour la direction IT
+### Résumé des avantages
 
 | Avantage | Impact Métier |
 |----------|---------------|
 | **Centralisation** | Gestion simplifiée de la sécurité sur un seul point (le Hub) |
-| **Évolutivité** | Facilité d'ajouter un nouveau Spoke (ex: Marketing) sans redéployer le Hub |
-| **Gouvernance** | Visibilité totale sur les coûts et les flux grâce au monitoring |
+| **Évolutivité** | Ajout d'un nouveau Spoke sans redéployer le Hub |
+| **Gouvernance** | Visibilité totale sur les coûts et les flux |
+| **Reproductibilité** | Déploiement identique en quelques commandes via Terraform |
 
 ---
 
-## 🏗️ Architecture
-
-<div align="center">
-
-![Architecture Hub-and-Spoke](hub-spoke.png)
-
-*Diagramme d'architecture - Hub-and-Spoke avec inspection centralisée*
-
-</div>
+## Architecture
 
 ### Topologie réseau
 
-L'architecture se compose de trois réseaux virtuels interconnectés :
+```
+                          ┌─────────────────────────────────────┐
+                          │           Hub VNet (Core)            │
+                          │           10.0.0.0/16                │
+                          │                                      │
+                          │  ┌──────────────┐  ┌─────────────┐  │
+                          │  │ Azure        │  │ Azure       │  │
+                          │  │ Firewall     │  │ Bastion     │  │
+                          │  │ 10.0.1.0/24  │  │ 10.0.2.0/24│  │
+                          │  │ (fw-hub-     │  │ (bastion-   │  │
+                          │  │  central)    │  │  hub)       │  │
+                          │  └──────┬───────┘  └─────────────┘  │
+                          └─────────┼───────────────────────────┘
+                 VNet Peering       │        VNet Peering
+          ┌────────────────────────┤────────────────────────┐
+          │                        │                        │
+          ▼                        │                        ▼
+┌─────────────────────┐            │           ┌─────────────────────┐
+│  Spoke Production   │            │           │ Spoke Non-Production │
+│  192.168.0.0/16     │            │           │ 172.16.0.0/12        │
+│                     │            │           │                      │
+│  ┌───────────────┐  │            │           │  ┌───────────────┐   │
+│  │ vm-prod-01    │  │  ◄── All traffic ──►   │  │ vm-nonprod-01 │   │
+│  │ 192.168.1.0/24│  │   inspected by FW      │  │ 172.16.1.0/24 │   │
+│  └───────────────┘  │                        │  └───────────────┘   │
+│  UDR → 10.0.1.4     │                        │  UDR → 10.0.1.4      │
+└─────────────────────┘                        └──────────────────────┘
+```
 
-1. **Hub (VNet Core)** : Réseau centralisé hébergeant les services partagés
-2. **Spoke Production** : Environnement de production isolé
-3. **Spoke Non-Production** : Environnement de développement et test
-
-Tous les VNets sont connectés via des **Virtual Network Peerings** bidirectionnels, permettant une communication sécurisée tout en maintenant l'isolation logique.
+L'architecture se compose de trois réseaux virtuels interconnectés via des **VNet Peerings bidirectionnels**, avec tout le trafic inter-spoke forcé à transiter par l'Azure Firewall grâce aux **UDR**.
 
 ---
 
-## 🧩 Composants
+## Composants
 
 ### 1. **Hub VNet** (`vnet-hub-core`)
 - **Adresse IP** : `10.0.0.0/16`
-- **Rôle** : Réseau centralisé pour les services partagés
-- **Subnets** :
-  - `AzureFirewallSubnet` : `10.0.1.0/24`
-  - `AzureBastionSubnet` : `10.0.2.0/24`
+- **Subnets** : `AzureFirewallSubnet` (`10.0.1.0/24`) · `AzureBastionSubnet` (`10.0.2.0/24`)
 
 ### 2. **Spoke Production** (`vnet-spoke-prod`)
 - **Adresse IP** : `192.168.0.0/16`
-- **Rôle** : Environnement de production
-- **Subnets** :
-  - `snet-prod-resources` : `192.168.1.0/24`
+- **Subnets** : `snet-prod-resources` (`192.168.1.0/24`)
 
 ### 3. **Spoke Non-Production** (`vnet-spoke-nonprod`)
 - **Adresse IP** : `172.16.0.0/12`
-- **Rôle** : Environnement de développement et test
-- **Subnets** :
-  - `snet-nonprod-resources` : `172.16.1.0/24`
+- **Subnets** : `snet-nonprod-resources` (`172.16.1.0/24`)
 
 ### 4. **Azure Firewall** (`fw-hub-central`)
-- **Type** : Standard Tier
-- **IP Privée** : `10.0.1.4`
-- **Fonction** : Inspection et filtrage centralisé de tout le trafic
-- **Politique** : `fw-policy-global` avec règles de trafic inter-spoke
+- **Tier** : Standard · **IP Privée** : `10.0.1.4`
+- **Politique** : `fw-policy-global` avec règles Allow inter-spoke
 
 ### 5. **Azure Bastion** (`bastion-hub`)
-- **Fonction** : Accès sécurisé aux machines virtuelles sans IP publique
-- **Subnet dédié** : `10.0.2.0/24`
+- Accès sécurisé aux VMs sans exposer d'IP publiques
 
 ### 6. **Log Analytics Workspace** (`law-hub-norway`)
-- **Rétention** : 30 jours
-- **SKU** : PerGB2018
-- **Fonction** : Centralisation des logs de sécurité et monitoring
+- **Rétention** : 30 jours · **SKU** : PerGB2018
 
 ### 7. **Machines Virtuelles**
-- **VM Production** : `vm-prod-01` (Ubuntu 20.04 LTS, Standard_B1s)
-- **VM Non-Production** : `vm-nonprod-01` (Ubuntu 20.04 LTS, Standard_B1s)
+- `vm-prod-01` et `vm-nonprod-01` — Ubuntu 20.04 LTS, Standard_B1s
 
-### 8. **User Defined Routes (UDR)**
-- **Table de routage** : `rt-forced-to-firewall`
-- **Fonction** : Force tout le trafic (`0.0.0.0/0`) à passer par le Firewall
+### 8. **Route Table UDR** (`rt-forced-to-firewall`)
+- Force `0.0.0.0/0` vers le Firewall (`10.0.1.4`)
 
 ---
 
-## 🌐 Segmentation réseau
+## Segmentation réseau
 
 | Environnement | Plage d'adresses | Description |
 |--------------|------------------|-------------|
@@ -175,131 +174,802 @@ Tous les VNets sont connectés via des **Virtual Network Peerings** bidirectionn
 | **Production** | `192.168.0.0/16` | Environnement de production isolé |
 | **Non-Production** | `172.16.0.0/12` | Environnement de développement/test |
 
-### Règles de communication
-
-- ✅ **Inter-Spoke autorisé** : Communication bidirectionnelle entre Production et Non-Production via le Firewall
-- ✅ **Protocoles autorisés** : ICMP, TCP, UDP
-- 🔒 **Inspection obligatoire** : Tout le trafic passe par Azure Firewall
-
----
-
-## 🎯 Cas d'usage
-
-Cette architecture est idéale pour les organisations qui nécessitent :
-
-### Entreprises avec exigences de conformité
-- **Secteurs réglementés** : Finance, Santé, Administration publique
-- **Audits réguliers** : ISO 27001, RGPD, SOC 2
-- **Traçabilité obligatoire** : Logs détaillés de tous les accès réseau
-
-### Multi-environnements
-- **Séparation Production/Non-Production** : Isolation stricte requise
-- **Environnements multiples** : Dev, Test, Staging, Production
-- **Gouvernance centralisée** : Contrôle unifié des politiques de sécurité
-
-### Sécurité renforcée
-- **Protection contre les menaces** : Inspection de tout le trafic
-- **Prévention d'exfiltration** : Contrôle des sorties Internet
-- **Réduction de la surface d'attaque** : Pas d'IP publiques sur les VMs
-
-### Évolutivité
-- **Ajout de nouveaux environnements** : Facilement extensible avec de nouveaux Spokes
-- **Croissance progressive** : Architecture qui s'adapte à l'expansion
-- **Gestion simplifiée** : Point de contrôle unique
-
----
-
-## 📦 Prérequis
-
-Avant de déployer cette infrastructure, assurez-vous d'avoir :
-
-- ✅ Un abonnement Azure actif
-- ✅ Azure CLI installé et configuré (version 2.50.0 ou supérieure)
-- ✅ Permissions suffisantes pour créer des ressources (Contributor ou Owner)
-- ✅ Quota suffisant pour les ressources suivantes :
-  - 3 Virtual Networks
-  - 1 Azure Firewall (Standard)
-  - 1 Azure Bastion
-  - 2 Virtual Machines (Standard_B1s)
-  - 1 Log Analytics Workspace
-
----
-
-## 🚀 Déploiement
-
-### Option 1 : Déploiement via Azure CLI
-
-```
-# Définition des variables
-$RG_NAME = "RG-ARCHITECTURE-COMPLET-NORWAY"
-$LOCATION = "norwayeast"
-
-# 1. Créer le groupe de ressources
-az group create --name $RG_NAME --location $LOCATION
-
-# 2. Lancer le déploiement (compter 15 minutes)
-az deployment group create `
-  --resource-group $RG_NAME `
-  --template-file main.bicep `
-  --parameters adminPassword='VotreMotDePasseComplex2026!' `
-  --verbose
-```
-
-### Option 2 : Déploiement via Azure Portal
-
-1. Connectez-vous au [Portail Azure](https://portal.azure.com)
-2. Recherchez "Déploiements" dans la barre de recherche
-3. Cliquez sur "Créer" > "Déployer un modèle personnalisé"
-4. Sélectionnez "Créer votre propre modèle dans l'éditeur"
-5. Collez le contenu du fichier `main.bicep`
-6. Remplissez les paramètres requis
-7. Cliquez sur "Vérifier + créer" puis "Créer"
-
-
-## 🔒 Sécurité
-
-### Mesures de sécurité implémentées
-
-1. **Inspection centralisée**
-   - Tout le trafic réseau passe par Azure Firewall
-   - Règles de filtrage applicatives et réseau configurées
-
-2. **Segmentation réseau**
-   - Isolation complète entre environnements Production et Non-Production
-   - Plages d'adresses IP distinctes pour chaque environnement
-
-3. **Accès sécurisé**
-   - Azure Bastion pour l'accès aux machines virtuelles (pas d'IP publiques)
-   - Authentification via clés SSH ou Azure AD
-
-4. **Monitoring et audit**
-   - Logs de sécurité centralisés dans Log Analytics
-   - Diagnostic activé sur Azure Firewall
-   - Rétention des logs : 30 jours
-
-5. **Routage forcé**
-   - User Defined Routes (UDR) garantissent le passage par le Firewall
-   - Impossible de contourner l'inspection
-
-### Règles de pare-feu
+### Règles Firewall
 
 | Règle | Source | Destination | Protocole | Action |
 |-------|--------|-------------|-----------|--------|
-| Allow-Internal-Traffic | 192.168.0.0/16<br>172.16.0.0/12 | 192.168.0.0/16<br>172.16.0.0/12 | ICMP, TCP, UDP | Allow |
-
-> 💡 **Note** : Vous pouvez ajouter d'autres règles selon vos besoins spécifiques en modifiant la collection de règles dans `main.bicep`.
+| Allow-Spoke-to-Spoke | `192.168.0.0/16` `172.16.0.0/12` | `192.168.0.0/16` `172.16.0.0/12` | ICMP, TCP, UDP | ✅ Allow |
 
 ---
 
-## 📊 Monitoring
+## Structure du projet
+
+```
+az-nor-secure-hub-spoke/
+├── main.tf                   # Ressources principales (Firewall, Bastion, VMs, UDR, Logs)
+├── network.tf                # VNets, Subnets, VNet Peerings
+├── variables.tf              # Déclaration de toutes les variables
+├── outputs.tf                # Sorties utiles post-déploiement
+├── terraform.tfvars.example  # Modèle de fichier de variables (à copier)
+├── .gitignore                # Exclut les fichiers sensibles (tfstate, tfvars)
+└── README.md                 # Ce fichier
+```
+
+---
+
+## Code source Terraform
+
+### `main.tf`
+
+Ressources principales : Firewall, Bastion, Log Analytics, UDR, Machines Virtuelles et paramètres de diagnostic.
+
+```hcl
+###############################################################################
+# AZ-NOR-SECURE-HUB-SPOKE - main.tf
+# Ressources principales : Firewall, Bastion, VMs, Log Analytics, UDR
+###############################################################################
+
+terraform {
+  required_version = ">= 1.5.0"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.100"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}
+
+# ─── Resource Group ───────────────────────────────────────────────────────────
+
+resource "azurerm_resource_group" "main" {
+  name     = var.resource_group_name
+  location = var.location
+  tags     = var.tags
+}
+
+# ─── Log Analytics Workspace ──────────────────────────────────────────────────
+
+resource "azurerm_log_analytics_workspace" "main" {
+  name                = "law-hub-norway"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+  tags                = var.tags
+}
+
+# ─── Azure Firewall Policy ────────────────────────────────────────────────────
+
+resource "azurerm_firewall_policy" "main" {
+  name                = "fw-policy-global"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  sku                 = "Standard"
+  tags                = var.tags
+}
+
+resource "azurerm_firewall_policy_rule_collection_group" "main" {
+  name               = "rcg-internal-traffic"
+  firewall_policy_id = azurerm_firewall_policy.main.id
+  priority           = 100
+
+  network_rule_collection {
+    name     = "Allow-Internal-Traffic"
+    priority = 100
+    action   = "Allow"
+
+    rule {
+      name                  = "Allow-Spoke-to-Spoke"
+      protocols             = ["ICMP", "TCP", "UDP"]
+      source_addresses      = [var.prod_address_space, var.nonprod_address_space]
+      destination_addresses = [var.prod_address_space, var.nonprod_address_space]
+      destination_ports     = ["*"]
+    }
+  }
+}
+
+# ─── Public IP - Azure Firewall ───────────────────────────────────────────────
+
+resource "azurerm_public_ip" "firewall" {
+  name                = "pip-fw-hub-central"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = var.tags
+}
+
+# ─── Azure Firewall ───────────────────────────────────────────────────────────
+
+resource "azurerm_firewall" "main" {
+  name                = "fw-hub-central"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  sku_name            = "AZFW_VNet"
+  sku_tier            = "Standard"
+  firewall_policy_id  = azurerm_firewall_policy.main.id
+  tags                = var.tags
+
+  ip_configuration {
+    name                 = "ipconfig-fw"
+    subnet_id            = azurerm_subnet.firewall.id
+    public_ip_address_id = azurerm_public_ip.firewall.id
+  }
+}
+
+# ─── Diagnostic Settings - Azure Firewall → Log Analytics ─────────────────────
+
+resource "azurerm_monitor_diagnostic_setting" "firewall" {
+  name                       = "diag-fw-hub-central"
+  target_resource_id         = azurerm_firewall.main.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+
+  enabled_log {
+    category = "AzureFirewallNetworkRule"
+  }
+
+  enabled_log {
+    category = "AzureFirewallApplicationRule"
+  }
+
+  metric {
+    category = "AllMetrics"
+  }
+}
+
+# ─── Public IP - Azure Bastion ────────────────────────────────────────────────
+
+resource "azurerm_public_ip" "bastion" {
+  name                = "pip-bastion-hub"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = var.tags
+}
+
+# ─── Azure Bastion ────────────────────────────────────────────────────────────
+
+resource "azurerm_bastion_host" "main" {
+  name                = "bastion-hub"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  sku                 = "Standard"
+  tags                = var.tags
+
+  ip_configuration {
+    name                 = "ipconfig-bastion"
+    subnet_id            = azurerm_subnet.bastion.id
+    public_ip_address_id = azurerm_public_ip.bastion.id
+  }
+}
+
+# ─── Route Table (UDR) - Force traffic through Firewall ───────────────────────
+
+resource "azurerm_route_table" "forced_firewall" {
+  name                          = "rt-forced-to-firewall"
+  resource_group_name           = azurerm_resource_group.main.name
+  location                      = azurerm_resource_group.main.location
+  disable_bgp_route_propagation = true
+  tags                          = var.tags
+
+  route {
+    name                   = "route-to-firewall"
+    address_prefix         = "0.0.0.0/0"
+    next_hop_type          = "VirtualAppliance"
+    next_hop_in_ip_address = var.firewall_private_ip
+  }
+}
+
+resource "azurerm_subnet_route_table_association" "prod" {
+  subnet_id      = azurerm_subnet.prod_resources.id
+  route_table_id = azurerm_route_table.forced_firewall.id
+}
+
+resource "azurerm_subnet_route_table_association" "nonprod" {
+  subnet_id      = azurerm_subnet.nonprod_resources.id
+  route_table_id = azurerm_route_table.forced_firewall.id
+}
+
+# ─── Network Interface - VM Production ───────────────────────────────────────
+
+resource "azurerm_network_interface" "prod" {
+  name                = "nic-vm-prod-01"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  tags                = var.tags
+
+  ip_configuration {
+    name                          = "ipconfig-prod"
+    subnet_id                     = azurerm_subnet.prod_resources.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+# ─── Virtual Machine - Production ─────────────────────────────────────────────
+
+resource "azurerm_linux_virtual_machine" "prod" {
+  name                            = "vm-prod-01"
+  resource_group_name             = azurerm_resource_group.main.name
+  location                        = azurerm_resource_group.main.location
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+  network_interface_ids           = [azurerm_network_interface.prod.id]
+  tags                            = var.tags
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts"
+    version   = "latest"
+  }
+}
+
+# ─── Network Interface - VM Non-Production ───────────────────────────────────
+
+resource "azurerm_network_interface" "nonprod" {
+  name                = "nic-vm-nonprod-01"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  tags                = var.tags
+
+  ip_configuration {
+    name                          = "ipconfig-nonprod"
+    subnet_id                     = azurerm_subnet.nonprod_resources.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+# ─── Virtual Machine - Non-Production ─────────────────────────────────────────
+
+resource "azurerm_linux_virtual_machine" "nonprod" {
+  name                            = "vm-nonprod-01"
+  resource_group_name             = azurerm_resource_group.main.name
+  location                        = azurerm_resource_group.main.location
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+  network_interface_ids           = [azurerm_network_interface.nonprod.id]
+  tags                            = var.tags
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts"
+    version   = "latest"
+  }
+}
+```
+
+---
+
+###  `network.tf`
+
+VNets, Subnets et VNet Peerings bidirectionnels entre le Hub et les deux Spokes.
+
+```hcl
+###############################################################################
+# AZ-NOR-SECURE-HUB-SPOKE — network.tf
+# VNets, Subnets et VNet Peerings bidirectionnels
+###############################################################################
+
+# ─── Hub VNet ─────────────────────────────────────────────────────────────────
+
+resource "azurerm_virtual_network" "hub" {
+  name                = "vnet-hub-core"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  address_space       = [var.hub_address_space]
+  tags                = var.tags
+}
+
+resource "azurerm_subnet" "firewall" {
+  # Ce nom est imposé par Azure — ne pas modifier
+  name                 = "AzureFirewallSubnet"
+  resource_group_name  = azurerm_resource_group.main.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [var.hub_firewall_subnet]
+}
+
+resource "azurerm_subnet" "bastion" {
+  # Ce nom est imposé par Azure — ne pas modifier
+  name                 = "AzureBastionSubnet"
+  resource_group_name  = azurerm_resource_group.main.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [var.hub_bastion_subnet]
+}
+
+# ─── Spoke Production VNet ────────────────────────────────────────────────────
+
+resource "azurerm_virtual_network" "prod" {
+  name                = "vnet-spoke-prod"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  address_space       = [var.prod_address_space]
+  tags                = var.tags
+}
+
+resource "azurerm_subnet" "prod_resources" {
+  name                 = "snet-prod-resources"
+  resource_group_name  = azurerm_resource_group.main.name
+  virtual_network_name = azurerm_virtual_network.prod.name
+  address_prefixes     = [var.prod_subnet]
+}
+
+# ─── Spoke Non-Production VNet ────────────────────────────────────────────────
+
+resource "azurerm_virtual_network" "nonprod" {
+  name                = "vnet-spoke-nonprod"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  address_space       = [var.nonprod_address_space]
+  tags                = var.tags
+}
+
+resource "azurerm_subnet" "nonprod_resources" {
+  name                 = "snet-nonprod-resources"
+  resource_group_name  = azurerm_resource_group.main.name
+  virtual_network_name = azurerm_virtual_network.nonprod.name
+  address_prefixes     = [var.nonprod_subnet]
+}
+
+# ─── VNet Peering : Hub ↔ Prod ────────────────────────────────────────────────
+
+resource "azurerm_virtual_network_peering" "hub_to_prod" {
+  name                         = "peer-hub-to-prod"
+  resource_group_name          = azurerm_resource_group.main.name
+  virtual_network_name         = azurerm_virtual_network.hub.name
+  remote_virtual_network_id    = azurerm_virtual_network.prod.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = false
+  use_remote_gateways          = false
+}
+
+resource "azurerm_virtual_network_peering" "prod_to_hub" {
+  name                         = "peer-prod-to-hub"
+  resource_group_name          = azurerm_resource_group.main.name
+  virtual_network_name         = azurerm_virtual_network.prod.name
+  remote_virtual_network_id    = azurerm_virtual_network.hub.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = false
+  use_remote_gateways          = false
+}
+
+# ─── VNet Peering : Hub ↔ Non-Prod ───────────────────────────────────────────
+
+resource "azurerm_virtual_network_peering" "hub_to_nonprod" {
+  name                         = "peer-hub-to-nonprod"
+  resource_group_name          = azurerm_resource_group.main.name
+  virtual_network_name         = azurerm_virtual_network.hub.name
+  remote_virtual_network_id    = azurerm_virtual_network.nonprod.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = false
+  use_remote_gateways          = false
+}
+
+resource "azurerm_virtual_network_peering" "nonprod_to_hub" {
+  name                         = "peer-nonprod-to-hub"
+  resource_group_name          = azurerm_resource_group.main.name
+  virtual_network_name         = azurerm_virtual_network.nonprod.name
+  remote_virtual_network_id    = azurerm_virtual_network.hub.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = false
+  use_remote_gateways          = false
+}
+```
+
+---
+
+###  `variables.tf`
+
+Déclaration de toutes les variables utilisées par le projet, avec valeurs par défaut.
+
+```hcl
+###############################################################################
+# AZ-NOR-SECURE-HUB-SPOKE - variables.tf
+###############################################################################
+
+# ─── Général ──────────────────────────────────────────────────────────────────
+
+variable "resource_group_name" {
+  description = "Nom du groupe de ressources Azure"
+  type        = string
+  default     = "RG-ARCHITECTURE-COMPLET-NORWAY"
+}
+
+variable "location" {
+  description = "Région Azure de déploiement"
+  type        = string
+  default     = "norwayeast"
+}
+
+variable "tags" {
+  description = "Tags appliqués à toutes les ressources"
+  type        = map(string)
+  default = {
+    Project     = "AZ-NOR-SECURE-HUB-SPOKE"
+    Environment = "HubSpoke"
+    ManagedBy   = "Terraform"
+    Region      = "NorwayEast"
+  }
+}
+
+# ─── Réseau - Espaces d'adressage ─────────────────────────────────────────────
+
+variable "hub_address_space" {
+  description = "Espace d'adressage du Hub VNet"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "hub_firewall_subnet" {
+  description = "Subnet pour Azure Firewall (doit s'appeler AzureFirewallSubnet)"
+  type        = string
+  default     = "10.0.1.0/24"
+}
+
+variable "hub_bastion_subnet" {
+  description = "Subnet pour Azure Bastion (doit s'appeler AzureBastionSubnet)"
+  type        = string
+  default     = "10.0.2.0/24"
+}
+
+variable "prod_address_space" {
+  description = "Espace d'adressage du Spoke Production"
+  type        = string
+  default     = "192.168.0.0/16"
+}
+
+variable "prod_subnet" {
+  description = "Subnet des ressources de production"
+  type        = string
+  default     = "192.168.1.0/24"
+}
+
+variable "nonprod_address_space" {
+  description = "Espace d'adressage du Spoke Non-Production"
+  type        = string
+  default     = "172.16.0.0/12"
+}
+
+variable "nonprod_subnet" {
+  description = "Subnet des ressources non-production"
+  type        = string
+  default     = "172.16.1.0/24"
+}
+
+variable "firewall_private_ip" {
+  description = "Adresse IP privée statique du Azure Firewall"
+  type        = string
+  default     = "10.0.1.4"
+}
+
+# ─── Machines Virtuelles ──────────────────────────────────────────────────────
+
+variable "vm_size" {
+  description = "Taille des machines virtuelles"
+  type        = string
+  default     = "Standard_B1s"
+}
+
+variable "admin_username" {
+  description = "Nom d'utilisateur administrateur des VMs"
+  type        = string
+  default     = "azureadmin"
+}
+
+variable "admin_password" {
+  description = "Mot de passe administrateur des VMs (sensible)"
+  type        = string
+  sensitive   = true
+}
+```
+
+---
+
+###  `outputs.tf`
+
+Sorties disponibles après le déploiement pour récupérer les informations clés.
+
+```hcl
+###############################################################################
+# AZ-NOR-SECURE-HUB-SPOKE - outputs.tf
+###############################################################################
+
+output "resource_group_name" {
+  description = "Nom du groupe de ressources"
+  value       = azurerm_resource_group.main.name
+}
+
+output "hub_vnet_id" {
+  description = "ID du Hub VNet"
+  value       = azurerm_virtual_network.hub.id
+}
+
+output "prod_vnet_id" {
+  description = "ID du Spoke Production VNet"
+  value       = azurerm_virtual_network.prod.id
+}
+
+output "nonprod_vnet_id" {
+  description = "ID du Spoke Non-Production VNet"
+  value       = azurerm_virtual_network.nonprod.id
+}
+
+output "firewall_private_ip" {
+  description = "IP privée du Azure Firewall"
+  value       = azurerm_firewall.main.ip_configuration[0].private_ip_address
+}
+
+output "firewall_public_ip" {
+  description = "IP publique du Azure Firewall"
+  value       = azurerm_public_ip.firewall.ip_address
+}
+
+output "bastion_public_ip" {
+  description = "IP publique du Azure Bastion"
+  value       = azurerm_public_ip.bastion.ip_address
+}
+
+output "vm_prod_private_ip" {
+  description = "IP privée de la VM Production"
+  value       = azurerm_network_interface.prod.private_ip_address
+}
+
+output "vm_nonprod_private_ip" {
+  description = "IP privée de la VM Non-Production"
+  value       = azurerm_network_interface.nonprod.private_ip_address
+}
+
+output "log_analytics_workspace_id" {
+  description = "ID du Log Analytics Workspace"
+  value       = azurerm_log_analytics_workspace.main.id
+}
+
+output "log_analytics_workspace_key" {
+  description = "Clé primaire du Log Analytics Workspace (sensible)"
+  value       = azurerm_log_analytics_workspace.main.primary_shared_key
+  sensitive   = true
+}
+```
+
+---
+
+###  `terraform.tfvars.modele`
+
+Modèle à copier en `terraform.tfvars` et à adapter. Ne jamais committer `terraform.tfvars` en production.
+
+```hcl
+###############################################################################
+# AZ-NOR-SECURE-HUB-SPOKE - terraform.tfvars.modele
+# Copiez ce fichier en terraform.tfvars et adaptez les valeurs.
+###############################################################################
+
+resource_group_name = "RG-ARCHITECTURE-COMPLET-NORWAY"
+location            = "norwayeast"
+
+# Mot de passe administrateur - min 12 caractères, maj + min + chiffre + spécial
+admin_password = "VotreMotDePasseComplex2026!"
+
+# Taille des VMs
+vm_size        = "Standard_B1s"
+admin_username = "azureadmin"
+
+# Segmentation réseau
+hub_address_space     = "10.0.0.0/16"
+hub_firewall_subnet   = "10.0.1.0/24"
+hub_bastion_subnet    = "10.0.2.0/24"
+prod_address_space    = "192.168.0.0/16"
+prod_subnet           = "192.168.1.0/24"
+nonprod_address_space = "172.16.0.0/12"
+nonprod_subnet        = "172.16.1.0/24"
+firewall_private_ip   = "10.0.1.4"
+
+tags = {
+  Project     = "AZ-NOR-SECURE-HUB-SPOKE"
+  Environment = "HubSpoke"
+  ManagedBy   = "Terraform"
+  Region      = "NorwayEast"
+  CostCenter  = "INFRA-001"
+}
+```
+
+---
+
+## Prérequis
+
+- Un abonnement Azure actif
+- [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.5.0 installé
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) ≥ 2.50.0 installé et configuré
+- Permissions Contributor ou Owner sur l'abonnement
+- Quota suffisant : 3 VNets, 1 Azure Firewall Standard, 1 Azure Bastion, 2 VMs Standard_B1s, 1 Log Analytics Workspace
+
+---
+
+## Déploiement
+
+### Étape 1 - Authentification Azure
+
+```bash
+# Connexion à Azure
+az login
+
+# Sélectionner le bon abonnement (si vous en avez plusieurs)
+az account set --subscription "<NOM_OU_ID_ABONNEMENT>"
+
+# Vérifier l'abonnement actif
+az account show
+```
+
+### Étape 2 - Préparation des fichiers
+
+```bash
+# Cloner ou télécharger le projet
+git clone https://github.com/dspitech/AZ-NOR-SECURE-HUB-SPOKE-PRO.git
+cd az-nor-secure-hub-spoke
+
+# Copier le fichier de variables exemple
+cp terraform.tfvars.modele terraform.tfvars
+
+# Éditer le fichier et renseigner au minimum admin_password
+nano terraform.tfvars   # ou code terraform.tfvars
+```
+
+### Étape 3 - Initialisation Terraform
+
+```bash
+# Télécharge le provider azurerm et initialise le backend
+terraform init
+```
+
+Résultat attendu :
+```
+Initializing the backend...
+Initializing provider plugins...
+- Finding hashicorp/azurerm versions matching "~> 3.100"...
+- Installing hashicorp/azurerm v3.116.0...
+Terraform has been successfully initialized!
+```
+
+### Étape 4 - Validation et planification
+
+```bash
+# Valider la syntaxe des fichiers
+terraform validate
+
+# Visualiser les ressources qui seront créées (sans appliquer)
+terraform plan -out=tfplan
+```
+
+Le plan affichera les ressources à créer. Vérifiez notamment les plages IP et le nombre de ressources.
+
+### Étape 5 - Déploiement (comptez ~15-20 minutes)
+
+```bash
+# Appliquer le plan validé
+terraform apply tfplan -auto-approve
+
+# Ou en une commande (demandera confirmation interactive)
+terraform apply -auto-approve
+```
+
+>  **Durée estimée** : Azure Firewall et Bastion sont les ressources les plus longues à provisionner (~10-15 min).
+
+### Étape 6 - Vérification des outputs
+
+```bash
+# Afficher toutes les sorties post-déploiement
+terraform output
+
+# Exemple de résultat :
+# firewall_private_ip     = "10.0.1.4"
+# firewall_public_ip      = "20.x.x.x"
+# vm_prod_private_ip      = "192.168.1.4"
+# vm_nonprod_private_ip   = "172.16.1.4"
+
+# Afficher la clé Log Analytics (sensible, masquée par défaut)
+terraform output -raw log_analytics_workspace_key
+```
+
+### Étape 7 - Test de connectivité inter-Spoke
+
+Installez l'extension Network Watcher sur les deux VMs, puis testez la connectivité :
+
+```bash
+# Installation sur la VM Prod
+az vm extension set \
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
+  --vm-name vm-prod-01 \
+  --name NetworkWatcherAgentLinux \
+  --publisher Microsoft.Azure.NetworkWatcher \
+  --version 1.4
+
+# Installation sur la VM Non-Prod
+az vm extension set \
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
+  --vm-name vm-nonprod-01 \
+  --name NetworkWatcherAgentLinux \
+  --publisher Microsoft.Azure.NetworkWatcher \
+  --version 1.4
+
+# Test de connectivité SSH entre Prod et Non-Prod
+az network watcher test-connectivity \
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
+  --source-resource vm-prod-01 \
+  --dest-resource vm-nonprod-01 \
+  --dest-port 22
+```
+
+### Suppression de l'infrastructure
+
+```bash
+# Irréversible — supprime TOUTES les ressources du projet
+terraform destroy -auto-approve
+```
+
+---
+
+## Sécurité
+
+### Mesures implémentées
+
+1. **Inspection centralisée** - Tout le trafic réseau transite par Azure Firewall
+2. **Segmentation réseau** - Isolation complète via VNets et plages IP distinctes
+3. **Accès sécurisé** - Azure Bastion, aucune IP publique sur les VMs
+4. **Monitoring et audit** - Logs centralisés dans Log Analytics, rétention 30 jours
+5. **Routage forcé** - UDR rendent le contournement du Firewall impossible
+
+### Recommandations supplémentaires
+
+- Stocker `admin_password` dans **Azure Key Vault** et le référencer dans les variables
+- Configurer un **backend Terraform distant** (Azure Storage) pour le tfstate partagé :
+
+```hcl
+# À ajouter dans main.tf > terraform {}
+backend "azurerm" {
+  resource_group_name  = "rg-terraform-state"
+  storage_account_name = "sttfstatenorway"
+  container_name       = "tfstate"
+  key                  = "hub-spoke.terraform.tfstate"
+}
+```
+
+- Activer la **rotation automatique des mots de passe**
+- Configurer des **alertes Azure Monitor** sur les événements de sécurité critiques
+
+---
+
+## Monitoring
 
 ### Log Analytics Workspace
 
-Le workspace `law-hub-norway` collecte les logs suivants :
+Le workspace `law-hub-norway` collecte automatiquement :
 
-- **AzureFirewallNetworkRule** : Logs des règles réseau
-- **AzureFirewallApplicationRule** : Logs des règles applicatives
-- **Métriques** : Toutes les métriques du Firewall
+- `AzureFirewallNetworkRule` — logs des règles réseau
+- `AzureFirewallApplicationRule` — logs des règles applicatives
+- Toutes les métriques du Firewall
 
 ### Requêtes KQL utiles
 
@@ -315,403 +985,195 @@ AzureDiagnostics
 | where Category == "AzureFirewallNetworkRule"
 | summarize count() by srcIp_s
 | top 10 by count_ desc
+
+// Toutes les connexions des dernières 24h
+AzureDiagnostics
+| where Category == "AzureFirewallNetworkRule"
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, srcIp_s, destIp_s, msg_s
+| order by TimeGenerated desc
 ```
 
 ### Accès aux logs
 
-1. Connectez-vous au [Portail Azure](https://portal.azure.com)
-2. Naviguez vers **Log Analytics Workspaces** > `law-hub-norway`
-3. Cliquez sur **Logs** pour exécuter des requêtes KQL
+1. Portail Azure → **Log Analytics Workspaces** → `law-hub-norway`
+2. Cliquez sur **Logs** pour exécuter des requêtes KQL
 
 ---
 
-## ⚙️ Configuration
+## Bonnes pratiques Terraform
 
-### Paramètres du déploiement
+### État (tfstate)
 
-| Paramètre | Description | Valeur par défaut |
-|-----------|-------------|-------------------|
-| `location` | Région de déploiement | `norwayeast` |
-| `adminUsername` | Nom d'utilisateur administrateur | `azureadmin` |
-| `adminPassword` | Mot de passe administrateur (sécurisé) | *Requis* |
+- Utilisez un **backend distant** (Azure Blob Storage) pour le travail en équipe
+- Activez le **verrouillage d'état** pour éviter les conflits simultanés
+- Ne commitez jamais `terraform.tfstate` dans Git (inclus dans `.gitignore`)
 
-### Personnalisation
+### Variables sensibles
 
-Pour personnaliser l'infrastructure, modifiez les variables dans `main.bicep` :
+- Ne mettez jamais de secrets en dur dans le code
+- Utilisez `sensitive = true` sur les variables/outputs sensibles
+- Préférez les variables d'environnement : `export TF_VAR_admin_password="..."`
 
-```bicep
-// Adresse IP privée du Firewall
-var fwPrivateIp = '10.0.1.4'
+### Gestion des changements
 
-// Plages d'adresses réseau
-// Hub: 10.0.0.0/16
-// Prod: 192.168.0.0/16
-// Non-Prod: 172.16.0.0/12
+```bash
+# Toujours planifier avant d'appliquer
+terraform plan -out=tfplan
+
+# Vérifier les changements destructifs avant d'appliquer
+terraform show tfplan | grep -E "destroy|replace"
+
+# Appliquer uniquement le plan validé
+terraform apply tfplan
 ```
 
 ---
 
-## ✅ Bonnes pratiques
+##  Dépannage
 
-### Sécurité
+###  Les VMs ne communiquent pas entre elles
 
-1. **Gestion des mots de passe**
-   - Utilisez Azure Key Vault pour stocker les secrets
-   - Activez la rotation automatique des mots de passe
-   - Implémentez l'authentification multi-facteurs (MFA)
-
-2. **Règles de pare-feu**
-   - Principe du moindre privilège : Autorisez uniquement le trafic nécessaire
-   - Révision régulière des règles (trimestrielle recommandée)
-   - Documentation de chaque règle avec justification métier
-
-3. **Monitoring proactif**
-   - Configurez des alertes sur les événements de sécurité critiques
-   - Définissez des seuils pour les tentatives d'accès suspectes
-   - Automatisez les rapports de conformité
-
-### Gestion opérationnelle
-
-1. **Tags et organisation**
-   - Appliquez des tags cohérents à toutes les ressources
-   - Utilisez des conventions de nommage standardisées
-   - Documentez l'objectif de chaque ressource
-
-2. **Backup et récupération**
-   - Planifiez des sauvegardes régulières des configurations
-   - Testez les procédures de restauration
-   - Documentez les procédures de disaster recovery
-
-3. **Gestion des coûts**
-   - Utilisez Azure Cost Management pour suivre les dépenses
-   - Configurez des budgets et alertes de coûts
-   - Réévaluez régulièrement la taille des ressources
-
-### Évolutivité
-
-1. **Ajout de nouveaux Spokes**
-   - Suivez la même structure de nommage
-   - Appliquez les mêmes UDR pour garantir l'inspection
-   - Documentez les nouvelles plages d'adresses IP
-
-2. **Automatisation**
-   - Utilisez Infrastructure as Code (Bicep/ARM) pour tous les déploiements
-   - Implémentez des pipelines CI/CD pour les changements
-   - Automatisez les tests de validation post-déploiement
-
----
-
-## 🔧 Dépannage
-
-### Problèmes courants et solutions
-
-#### ❌ Les machines virtuelles ne peuvent pas communiquer entre elles
-
-**Symptômes** : Ping échoue entre les VMs des différents Spokes
-
-**Solutions** :
-1. Vérifiez que les peering sont bien établis (bidirectionnels)
-   ```
-   az network vnet peering list --resource-group RG-ARCHITECTURE-COMPLET-NORWAY --vnet-name vnet-hub-core
-   ```
-
-2. Vérifiez que les UDR sont bien associées aux subnets
-   ```
-   az network route-table show --resource-group RG-ARCHITECTURE-COMPLET-NORWAY --name rt-forced-to-firewall
-   ```
-
-3. Vérifiez les règles du Firewall dans le portail Azure
-   - Naviguez vers Azure Firewall > Règles
-   - Assurez-vous que la règle "Allow-Internal-Traffic" est active
-
-#### ❌ Impossible de se connecter via Azure Bastion
-
-**Symptômes** : La connexion Bastion échoue ou timeout
-
-**Solutions** :
-1. Vérifiez que le subnet Bastion a la taille minimale requise (`/26` ou plus grand)
-2. Vérifiez que la VM est en cours d'exécution
-3. Vérifiez les règles NSG si elles sont configurées
-4. Vérifiez les logs de diagnostic de Bastion dans Log Analytics
-
-#### ❌ Le trafic ne passe pas par le Firewall
-
-**Symptômes** : Les logs du Firewall ne montrent aucun trafic
-
-**Solutions** :
-1. Vérifiez que les UDR sont correctement associées aux subnets des Spokes
-2. Vérifiez que l'IP privée du Firewall (`10.0.1.4`) est correcte dans les UDR
-3. Vérifiez l'état du Firewall (doit être "En cours d'exécution")
-4. Testez avec un trafic simple (ping) et vérifiez les logs
-
-#### ❌ Erreur lors du déploiement Bicep
-
-**Symptômes** : Le déploiement échoue avec une erreur
-
-**Solutions** :
-1. Vérifiez que tous les prérequis sont remplis (quotas, permissions)
-2. Validez le fichier Bicep avant le déploiement :
-   ```bash
-   az deployment group validate \
-     --resource-group rg-hub-spoke-norway \
-     --template-file main.bicep
-   ```
-3. Vérifiez les logs de déploiement détaillés dans le portail Azure
-4. Assurez-vous que le mot de passe respecte les exigences de complexité
-
-### Commandes de diagnostic utiles
-
-##### 1. Vérifier l'état de santé du Firewall
-```
-az network firewall show `
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
-  --name fw-hub-central
-```
-
-##### 2. Vérifier les routes effectives de la VM Prod
-
-```
-# (Cela permet de confirmer que le trafic passe bien par 10.0.1.4)
-az network nic show-effective-route-table `
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
-  --name nic-vm-prod-01 `
+1. Vérifier les peerings :
+```bash
+az network vnet peering list \
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
+  --vnet-name vnet-hub-core \
   --output table
 ```
 
-##### 3. Tester la connectivité entre Prod et Non-Prod (Port SSH)
-
-Avant de tester la connectivité il faut : **installer l'extension sur vos deux VMs**
-
-```
-# Installation sur la VM Prod
-az vm extension set `
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
-  --vm-name vm-prod-01 `
-  --name NetworkWatcherAgentLinux `
-  --publisher Microsoft.Azure.NetworkWatcher `
-  --version 1.4
-
-# Installation sur la VM Non-Prod
-az vm extension set `
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
-  --vm-name vm-nonprod-01 `
-  --name NetworkWatcherAgentLinux `
-  --publisher Microsoft.Azure.NetworkWatcher `
-  --version 1.4
+2. Vérifier les routes effectives de la VM Prod :
+```bash
+az network nic show-effective-route-table \
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
+  --name nic-vm-prod-01 \
+  --output table
 ```
 
-##### Tester la connectivité
+3. Vérifier l'état du Firewall dans le portail Azure → Règles → `Allow-Spoke-to-Spoke`
+
+###  `terraform apply` échoue — quota insuffisant
+
+```bash
+# Vérifier les quotas disponibles dans la région
+az vm list-usage --location norwayeast --output table
 ```
-az network watcher test-connectivity `
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
-  --source-resource vm-prod-01 `
-  --dest-resource vm-nonprod-01 `
-  --dest-port 22
+
+Contactez le support Azure pour augmenter les quotas si nécessaire.
+
+###  Erreur d'authentification Terraform
+
+```bash
+# Vérifier la connexion Azure CLI
+az account show
+
+# Reconnecter si nécessaire
+az login
+```
+
+###  Le trafic ne passe pas par le Firewall
+
+```bash
+# Vérifier l'état du Firewall
+az network firewall show \
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
+  --name fw-hub-central \
+  --query "provisioningState"
+
+# Vérifier l'association UDR sur le subnet Prod
+az network vnet subnet show \
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
+  --vnet-name vnet-spoke-prod \
+  --name snet-prod-resources \
+  --query "routeTable"
 ```
 
 ---
 
-## ❓ FAQ
+##  FAQ
 
-### Questions générales
+**Q : Comment ajouter un troisième Spoke (ex : Marketing) ?**
 
-**Q : Puis-je ajouter un troisième Spoke (par exemple pour un environnement Marketing) ?**
+Ajoutez dans `network.tf` un nouveau VNet + subnet + 2 peerings, dans `main.tf` l'association UDR, et dans `variables.tf` les variables correspondantes. Relancez `terraform apply`.
 
-R : Oui, absolument ! C'est l'un des avantages de l'architecture Hub-and-Spoke. Il suffit de :
-1. Créer un nouveau VNet avec une plage IP distincte
-2. Créer les peerings bidirectionnels avec le Hub
-3. Associer les UDR aux subnets du nouveau Spoke
-4. Ajouter les règles de pare-feu nécessaires
+**Q : Comment migrer le tfstate existant (Bicep → Terraform) ?**
 
-**Q : Combien de Spokes puis-je connecter au Hub ?**
+Le Terraform gère des états indépendants. Pour migrer sans recréer les ressources, utilisez `terraform import` ressource par ressource, ou déployez en parallèle avant de désaffecter l'ancienne stack Bicep.
 
-R : Azure supporte jusqu'à 500 peerings par VNet. Cependant, pour des raisons de performance et de gestion, il est recommandé de ne pas dépasser 50-100 Spokes par Hub.
+**Q : Puis-je utiliser des VMs Windows ?**
 
-**Q : Puis-je utiliser cette architecture dans une autre région Azure ?**
-
-R : Oui, modifiez simplement le paramètre `location` dans le fichier Bicep. Notez que certaines ressources (comme Azure Bastion) doivent être dans la même région que les VNets.
-
-### Questions de sécurité
-
-**Q : Le trafic entre les Spokes est-il chiffré ?**
-
-R : Par défaut, le trafic entre les VNets via peering est chiffré au niveau de la couche réseau Azure. Pour un chiffrement de bout en bout, vous devrez implémenter des solutions supplémentaires (VPN, TLS, etc.).
-
-**Q : Puis-je bloquer complètement la communication entre Production et Non-Production ?**
-
-R : Oui, supprimez ou modifiez la règle "Allow-Internal-Traffic" dans la politique du Firewall pour bloquer le trafic inter-Spoke.
-
-**Q : Comment puis-je sécuriser davantage l'accès aux machines virtuelles ?**
-
-R : Plusieurs options :
-- Utiliser Azure AD pour l'authentification SSH
-- Implémenter Just-In-Time (JIT) VM Access
-- Configurer des Network Security Groups (NSG) supplémentaires
-- Utiliser Azure Private Link pour les services
-
-### Questions de coûts
-
-**Q : Y a-t-il des coûts cachés ?**
-
-R : Les principaux coûts supplémentaires peuvent venir de :
-- Le trafic sortant (egress) vers Internet
-- L'ingestion de logs dans Log Analytics (au-delà de la rétention gratuite)
-- Les snapshots et backups des machines virtuelles
-- Les adresses IP publiques statiques
-
-**Q : Puis-je réduire les coûts ?**
-
-R : Oui, plusieurs options :
-- Utiliser Azure Firewall Basic (au lieu de Standard) pour des besoins moins critiques
-- Réduire la rétention des logs (actuellement 30 jours)
-- Arrêter/désallouer les VMs de test lorsqu'elles ne sont pas utilisées
-- Utiliser des réservations Azure pour les ressources à long terme
-
-### Questions techniques
-
-**Q : Puis-je utiliser des machines virtuelles Windows au lieu de Linux ?**
-
-R : Oui, modifiez simplement la référence d'image dans le fichier Bicep :
-```bicep
-imageReference: { 
-  publisher: 'MicrosoftWindowsServer', 
-  offer: 'WindowsServer', 
-  sku: '2022-Datacenter', 
-  version: 'latest' 
+Oui, remplacez le bloc `source_image_reference` dans `main.tf` :
+```hcl
+source_image_reference {
+  publisher = "MicrosoftWindowsServer"
+  offer     = "WindowsServer"
+  sku       = "2022-Datacenter"
+  version   = "latest"
 }
 ```
 
-**Q : Comment puis-je étendre cette architecture à un environnement hybride (on-premise) ?**
+**Q : Le trafic inter-VNets est-il chiffré ?**
 
-R : Ajoutez :
-- Une passerelle VPN ou ExpressRoute dans le Hub
-- Des routes supplémentaires dans les UDR pour diriger le trafic on-premise
-- Des règles de pare-feu pour autoriser la communication hybride
+Le peering Azure chiffre le trafic au niveau de la couche réseau. Pour un chiffrement de bout en bout, ajoutez TLS au niveau applicatif.
 
-**Q : Le Firewall peut-il gérer le trafic HTTPS/SSL ?**
+**Q : Puis-je bloquer la communication entre Prod et Non-Prod ?**
 
-R : Azure Firewall Standard supporte l'inspection SSL/TLS avec des certificats. Pour cela, vous devrez configurer des règles applicatives avec inspection SSL.
+Oui, supprimez ou modifiez la règle `Allow-Spoke-to-Spoke` dans le bloc `azurerm_firewall_policy_rule_collection_group` dans `main.tf`.
 
 ---
 
-## 💰 Coûts estimés
+##  Coûts estimés
 
-> ⚠️ **Note** : Les coûts varient selon la région, l'utilisation et les tarifs Azure en vigueur.
-
-### Ressources principales
-
-| Ressource | SKU/Taille | Coût mensuel estimé (USD) |
-|-----------|------------|---------------------------|
-| Azure Firewall (Standard) | Standard | ~$1,250 |
+| Ressource | SKU | Coût mensuel estimé (USD) |
+|-----------|-----|---------------------------|
+| Azure Firewall | Standard | ~$1,250 |
 | Azure Bastion | Standard | ~$140 |
-| Log Analytics Workspace | PerGB2018 | ~$2.30/GB |
-| Virtual Machines (x2) | Standard_B1s | ~$15 |
-| Virtual Networks | - | Gratuit |
-| Peering | - | Gratuit |
+| Log Analytics | PerGB2018 | ~$2.30/GB ingéré |
+| VMs (x2) | Standard_B1s | ~$15 |
+| VNets + Peerings | — | Gratuit |
 
-**Total estimé** : ~$1,400-1,500/mois (hors trafic et stockage)
+**Total estimé** : ~$1,400–1,500/mois hors trafic et stockage
 
-> 💡 **Astuce** : Utilisez le [Calculateur de prix Azure](https://azure.microsoft.com/pricing/calculator/) pour une estimation précise.
-
----
-
-## 🛠️ Maintenance
-
-### Mises à jour recommandées
-
-- **Règles de pare-feu** : Réviser régulièrement les règles selon les besoins métier
-- **Logs** : Analyser les logs de sécurité hebdomadairement
-- **Sécurité** : Appliquer les mises à jour de sécurité aux machines virtuelles
-- **Monitoring** : Configurer des alertes sur les événements critiques
-
-### Commandes utiles
-
-
-#### 1. Vérifier l'état du déploiement
-Note : Par défaut, le nom du déploiement est souvent le nom du fichier 'main'
-
-```
-az deployment group show `
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
-  --name main
-```
-#### 2. Lister toutes les ressources du projet
-
-```
-az resource list `
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
-  --output table
-```
-#### 3. Supprimer tout le projet (Hub, Spokes, Firewall, VMs)
-# Attention : Cette commande est irréversible.
-
-```
-az group delete `
-  --name RG-ARCHITECTURE-COMPLET-NORWAY `
-  --yes --no-wait
-```
+>  Utilisez le [Calculateur de prix Azure](https://azure.microsoft.com/pricing/calculator/) pour une estimation précise selon votre trafic.
 
 ---
 
-## 📚 Ressources supplémentaires
+##  Évolutions futures
 
-- [Documentation Azure Firewall](https://docs.microsoft.com/azure/firewall/)
-- [Architecture Hub-and-Spoke](https://docs.microsoft.com/azure/architecture/reference-architectures/hybrid-networking/hub-spoke)
+### Version 2.1 (Planifiée)
+- [ ] Backend Terraform sur Azure Storage avec state locking
+- [ ] Intégration Azure Key Vault pour les secrets
+- [ ] Network Security Groups (NSG) par subnet
+- [ ] Alertes Azure Monitor sur événements critiques
+
+### Version 2.2 (Envisagée)
+- [ ] Support multi-régions avec global peering
+- [ ] Azure DDoS Protection Standard
+- [ ] Private Endpoints pour les services Azure PaaS
+- [ ] Pipeline CI/CD GitHub Actions pour `terraform plan/apply`
+
+### Version 3.0 (Future)
+- [ ] Module Terraform réutilisable pour les Spokes
+- [ ] ExpressRoute pour connectivité hybride on-premise
+- [ ] Azure WAF + Azure Sentinel (SIEM)
+- [ ] Dashboard Azure Monitor personnalisé
+
+---
+
+##  Ressources
+
+- [Documentation Terraform azurerm](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+- [Architecture Hub-and-Spoke Azure](https://docs.microsoft.com/azure/architecture/reference-architectures/hybrid-networking/hub-spoke)
+- [Azure Firewall](https://docs.microsoft.com/azure/firewall/)
 - [Azure Bastion](https://docs.microsoft.com/azure/bastion/)
 - [Log Analytics](https://docs.microsoft.com/azure/azure-monitor/logs/log-analytics-overview)
-- [Bicep Documentation](https://docs.microsoft.com/azure/azure-resource-manager/bicep/)
 
 ---
 
-## 🚀 Évolutions futures
+##  Licence
 
-### Améliorations prévues (Roadmap)
-
-#### Version 1.2 (Planifiée)
-- [ ] Intégration d'Azure Key Vault pour la gestion des secrets
-- [ ] Ajout de Network Security Groups (NSG) pour une sécurité renforcée
-- [ ] Configuration d'alertes Azure Monitor pour les événements critiques
-- [ ] Documentation des procédures de disaster recovery
-
-#### Version 1.3 (Envisagée)
-- [ ] Support multi-régions avec peering global
-- [ ] Intégration d'Azure DDoS Protection
-- [ ] Configuration de Private Endpoints pour les services Azure
-- [ ] Automatisation complète via GitHub Actions / Azure DevOps
-
-#### Version 2.0 (Future)
-- [ ] Support d'ExpressRoute pour connectivité hybride
-- [ ] Intégration d'Azure WAF (Web Application Firewall)
-- [ ] Détection avancée des menaces avec Azure Sentinel
-- [ ] Dashboard de monitoring personnalisé avec Azure Dashboards
-
-### Contributions
-
-Les suggestions d'amélioration sont les bienvenues ! N'hésitez pas à :
-- Ouvrir une issue pour signaler un bug ou proposer une fonctionnalité
-- Créer une pull request avec vos améliorations
-- Partager vos retours d'expérience
+Ce projet est entièrement libre et open source. Le code source complet est mis à disposition gratuitement.
 
 ---
-
-## 🤝 Support
-
-Pour toute question ou problème :
-
-1. Consultez la [documentation Azure](https://docs.microsoft.com/azure/)
-2. Ouvrez une issue sur ce repository
-3. Contactez votre équipe d'infrastructure Azure
-
----
-
-## 📄 Licence
-
-Cette infrastructure Hub-and-Spoke automatisée sous Azure (via Bicep) est entièrement libre et open source. Le code source complet, incluant la segmentation réseau avancée, le filtrage par Azure Firewall et le monitoring centralisé, est mis à la disposition de tous gratuitement.
-
----
-
-
 
 [⬆ Retour en haut](#-az-nor-secure-hub-spoke)
-
-</div>
