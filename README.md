@@ -1173,6 +1173,54 @@ az vm extension set `
 az network watcher test-connectivity --resource-group RG-ARCHITECTURE-COMPLET-NORWAY --source-resource vm-prod-01 --dest-resource vm-nonprod-01 --dest-port 22
 ```
 
+# Analyse du résultat - test-connectivity port 22
+
+Le trafic est **Unreachable** mais c'est en réalité **normal et attendu**.
+Voici ce que dit le tracé hop par hop :
+
+---
+
+## Parcours du paquet
+
+```
+vm-prod-01 (192.168.1.4)
+    │ ✅ OK - sort du VNet prod
+    ▼
+Azure Firewall (10.0.1.0/24)
+    │ ✅ OK - Firewall laisse passer (règle Allow-Spoke-to-Spoke)
+    ▼
+vm-nonprod-01 (172.16.1.4)
+    │ ❌ BLOQUÉ - NSG nsg-nonprod-resources / règle Deny-All-Inbound
+```
+
+---
+
+## Pourquoi c'est normal
+
+Le test envoie le trafic directement de **prod → nonprod sur le port 22**.
+Or dans `nsg.tf`, la règle SSH sur le NSG nonprod autorise uniquement
+la source `10.0.2.0/24` (le subnet Bastion), pas `192.168.1.0/24` (le subnet prod) :
+
+```hcl
+# nsg.tf — NSG nonprod
+security_rule {
+  name                   = "Allow-SSH-From-Bastion"
+  source_address_prefix  = var.hub_bastion_subnet  # 10.0.2.0/24 uniquement
+  destination_port_range = "22"
+}
+```
+
+---
+
+## Ce que ça confirme - tout fonctionne correctement
+
+| Hop | Statut | Signification |
+|-----|--------|---------------|
+| vm-prod-01 → Firewall | ✅ | UDR fonctionne, trafic routé vers le Firewall |
+| Firewall → vm-nonprod-01 | ✅ | Règle Allow-Spoke-to-Spoke active |
+| NSG nonprod port 22 | ❌ | Normal - SSH autorisé uniquement depuis Bastion |
+
+
 **Destruction**
 ```bash
 make destroy   # Demande confirmation "destroy"
