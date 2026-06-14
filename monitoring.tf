@@ -29,21 +29,20 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "fw_high_denials" {
   description          = "Alerte si le Firewall refuse plus de ${var.fw_denial_threshold} connexions en 5 minutes"
 
   criteria {
-    query = <<-QUERY
-      AzureDiagnostics
-      | where Category == "AzureFirewallNetworkRule"
-      | where msg_s contains "Deny"
-      | summarize DenialCount = count() by bin(TimeGenerated, 5m)
-      | where DenialCount > ${var.fw_denial_threshold}
-    QUERY
-    time_aggregation_method = "Count"
-    threshold               = 0
-    operator                = "GreaterThan"
-    failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
+      query = <<-QUERY
+        AZFWNetworkRule
+        | where Action == "Deny"
+        | summarize DenialCount = count() by bin(TimeGenerated, 5m)
+        | where DenialCount > ${var.fw_denial_threshold}
+      QUERY
+      time_aggregation_method = "Count"
+      threshold               = 0
+      operator                = "GreaterThan"
+      failing_periods {
+        minimum_failing_periods_to_trigger_alert = 1
+        number_of_evaluation_periods             = 1
+      }
     }
-  }
 
   action { action_groups = [azurerm_monitor_action_group.security.id] }
 }
