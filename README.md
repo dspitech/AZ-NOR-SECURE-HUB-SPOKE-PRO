@@ -1340,32 +1340,77 @@ make apply
 
 ### Déploiement détaillé
 
-```powershell
 # Étape 1 : Authentification Azure
+
+Connectez-vous à Azure en utilisant l'une des méthodes suivantes :
+
+- **Cloud Shell Azure** : connectez-vous au portail Azure et ouvrez le Cloud Shell (PowerShell).
+- **Environnement local** : ouvrez un terminal sur votre poste de travail disposant de l'Azure CLI.
+
+Exécutez ensuite les commandes suivantes :
+
+```powershell
 az login
 az account set --subscription "<NOM_OU_ID_ABONNEMENT>"
 az account show
+```
 
-# Étape 2 : (Optionnel) Bootstrap du backend distant
+#### Étape 2 : Initialisation du backend distant (optionnel)
+
+Si vous souhaitez utiliser un backend distant pour stocker l’état Terraform, exécutez la commande suivante :
+
+```powershell
 make bootstrap-backend
-# Puis décommenter le bloc backend dans backend.tf
+```
+Puis décommenter le bloc backend dans backend.tf
 
-# Étape 3 : Initialisation
+#### Étape 3 : Initialisation
+
+```powershell
 make init
+```
+#### Étape 4 : Scan de sécurité
 
-# Étape 4 : Scan de sécurité
+```powershell
 make security-scan
+```
 
-# Étape 5 : Plan
+
+#### Étape 5 : Plan
+
+```powershell
 make plan
+```
 
-# Étape 6 : Déploiement
+#### Étape 6 : Déploiement
+
+```powershell
 make apply
+```
 
-# Étape 7 : Vérification
+#### Étape 7 : Vérification
+
+```powershell
 make output
+```
 
-# Installer l'extension Network Watcher sur les VMs (PowerShell)
+#### Étape 8 : Installer l'extension Network Watcher sur les VMs 
+
+**Azure Network Watcher** est un service de supervision et de diagnostic réseau qui permet d'analyser, surveiller et dépanner les ressources réseau dans Azure.
+
+Il permet notamment de :
+
+- Vérifier la connectivité entre des ressources Azure.
+- Diagnostiquer les problèmes de routage et de filtrage réseau.
+- Analyser les flux de trafic à travers les groupes de sécurité réseau (NSG Flow Logs).
+- Capturer des paquets réseau pour faciliter le dépannage.
+- Surveiller les performances et la latence du réseau.
+- Visualiser la topologie des ressources réseau Azure.
+
+> Dans ce projet, Network Watcher est généralement utilisé pour faciliter le diagnostic et l'observabilité du réseau.
+
+
+```powershell
 az vm extension set `
   --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
   --vm-name vm-prod-01 `
@@ -1379,15 +1424,19 @@ az vm extension set `
   --name NetworkWatcherAgentLinux `
   --publisher Microsoft.Azure.NetworkWatcher `
   --version 1.4
+```
 
-# Test de connectivité inter-Spoke (SSH, port 22, Prod vers NonProd)
+#### Étape 9 : Test
+
+#### Test 1 : test de connectivité inter-Spoke (SSH, port 22, Prod vers NonProd)
+
+```powershell
 az network watcher test-connectivity \
   --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
   --source-resource vm-prod-01 \
   --dest-resource vm-nonprod-01 \
   --dest-port 22
 ```
-
 #### Résultat attendu du test de connectivité (port 22, Prod vers NonProd)
 
 Le test retournera `Unreachable`. C'est le comportement attendu et correct.
@@ -1512,7 +1561,7 @@ make destroy
 
 ---
 
-## 11. CI/CD GitHub Actions
+## 11. CI/CD GitHub Actions (optionnel)
 
 ### Vue d'ensemble du pipeline
 
