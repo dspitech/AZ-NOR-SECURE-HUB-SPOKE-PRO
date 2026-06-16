@@ -1329,7 +1329,6 @@ git clone https://github.com/dspitech/AZ-NOR-SECURE-HUB-SPOKE-PRO.git
 cd AZ-NOR-SECURE-HUB-SPOKE-PRO
 
 # Configurer les variables
-cp terraform.tfvars.modele terraform.tfvars
 nano terraform.tfvars   # Renseigner admin_password et alert_email
 
 # Déployer
