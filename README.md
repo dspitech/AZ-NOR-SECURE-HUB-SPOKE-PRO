@@ -1447,6 +1447,15 @@ az vm extension set `
   --version 1.4
 ```
 
+
+#### Vérification
+
+```
+az vm extension list `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --vm-name vm-prod-01 -o table
+```
+
 #### Étape 9 : Test
 
 #### Test 1 : test de connectivité inter-Spoke (SSH, port 22, Prod vers NonProd)
