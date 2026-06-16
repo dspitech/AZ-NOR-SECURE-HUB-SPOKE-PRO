@@ -23,7 +23,7 @@
 
 1. [Introduction](#1-introduction)
 2. [Concepts fondamentaux](#2-concepts-fondamentaux)
-3. [Glossaire technique](#3-glossaire-technique)
+3. [Concept technique](#3-concept-technique)
 4. [Architecture](#4-architecture)
 5. [Composants déployés](#5-composants-déployés)
 6. [Segmentation réseau et règles de sécurité](#6-segmentation-réseau-et-règles-de-sécurité)
@@ -149,7 +149,7 @@ Chaque environnement utilise une plage d'adresses IP entièrement séparée. Cet
 
 ---
 
-## 3. Glossaire technique
+## 3. Concept technique
 
 ### A
 
