@@ -1,4 +1,4 @@
-# AZ-NOR-SECURE-HUB-SPOKEL
+# AZ-NOR-SECURE-HUB-SPOKE
 
 <div align="center">
 
