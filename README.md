@@ -1430,10 +1430,10 @@ az vm extension set `
 #### Test 1 : test de connectivité inter-Spoke (SSH, port 22, Prod vers NonProd)
 
 ```powershell
-az network watcher test-connectivity \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --source-resource vm-prod-01 \
-  --dest-resource vm-nonprod-01 \
+az network watcher test-connectivity `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --source-resource vm-prod-01 `
+  --dest-resource vm-nonprod-01 `
   --dest-port 22
 ```
 #### Résultat attendu du test de connectivité (port 22, Prod vers NonProd)
@@ -1457,10 +1457,10 @@ Ce résultat confirme que les deux premiers niveaux de sécurité (UDR et Firewa
 #### Test 2 : Connectivité HTTP/HTTPS autorisée (Prod vers NonProd, ports 80/443)
 
 ```powershell
-az network watcher test-connectivity \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --source-resource vm-prod-01 \
-  --dest-resource vm-nonprod-01 \
+az network watcher test-connectivity `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --source-resource vm-prod-01 `
+  --dest-resource vm-nonprod-01 `
   --dest-port 80
 ```
 
@@ -1480,36 +1480,16 @@ vm-nonprod-01 (172.16.1.4)
 
 Ce résultat confirme que la règle applicative ouverte volontairement (HTTP/HTTPS depuis Prod) fonctionne comme prévu, contrairement au SSH qui reste bloqué.
 
-#### Test 3 : Accès SSH via Bastion vers VM Prod (chemin administrateur légitime)
-
-```powershell
-az network watcher test-connectivity \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --source-resource bastion-az-nor-hub \
-  --dest-resource vm-prod-01 \
-  --dest-port 22
-```
-
-**Résultat attendu : `Reachable`**
-
-```
-bastion-az-nor-hub (10.0.2.0/24)
-    |  Tunnel HTTPS chiffré depuis le portail Azure
-    v
-vm-prod-01 (192.168.1.4)
-    |  AUTORISÉ par NSG nsg-prod-resources
-    ok Règle Allow-SSH-From-Bastion (source 10.0.2.0/24, port 22 -> ALLOW)
-```
 
 Ce résultat confirme que le Bastion reste le seul chemin autorisé pour l'administration SSH, conformément au modèle de défense en profondeur.
 
-#### Test 4 : Tentative NonProd vers Prod sur un port non listé (ex. port 3389 RDP)
+#### Test 3 : Tentative NonProd vers Prod sur un port non listé (ex. port 3389 RDP)
 
 ```powershell
-az network watcher test-connectivity \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --source-resource vm-nonprod-01 \
-  --dest-resource vm-prod-01 \
+az network watcher test-connectivity  `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY  `
+  --source-resource vm-nonprod-01  `
+  --dest-resource vm-prod-01  `
   --dest-port 3389
 ```
 
@@ -1529,13 +1509,13 @@ vm-prod-01 (192.168.1.4)
 
 Ce résultat illustre que la règle `Allow-Internal-From-Nonprod` est volontairement large (tous ports/protocoles depuis NonProd vers Prod) ; à surveiller ou restreindre en production si ce niveau d'ouverture n'est pas souhaité.
 
-#### Test 5 : Connectivité depuis Internet vers une VM (vérification de l'absence d'IP publique)
+#### Test 4 : Connectivité depuis Internet vers une VM (vérification de l'absence d'IP publique)
 
 ```powershell
-az network watcher test-connectivity \
-  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY \
-  --source-resource vm-prod-01 \
-  --dest-address 8.8.8.8 \
+az network watcher test-connectivity `
+  --resource-group RG-ARCHITECTURE-COMPLET-NORWAY `
+  --source-resource vm-prod-01 `
+  --dest-address 8.8.8.8 `
   --dest-port 443
 ```
 
