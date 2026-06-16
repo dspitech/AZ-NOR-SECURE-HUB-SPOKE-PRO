@@ -1,5 +1,5 @@
 ###############################################################################
-# AZ-NOR-SECURE-HUB-SPOKE - network.tf (corrigé)
+# AZ-NOR-SECURE-HUB-SPOKE - network.tf 
 ###############################################################################
 
 resource "azurerm_virtual_network" "hub" {
